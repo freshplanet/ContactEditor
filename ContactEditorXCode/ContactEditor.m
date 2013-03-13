@@ -482,7 +482,7 @@ FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREOb
                 //[country release];
                 CFRelease(dict);
                 CFRelease(labeltype);
-                CFRelease(typeTmp);
+                if (typeTmp != NULL) CFRelease(typeTmp);
                 addressNum++;
             }
             CFRelease(addresses);
