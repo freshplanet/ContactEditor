@@ -430,69 +430,98 @@ FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREOb
         else
             FRESetObjectProperty(contact, (const uint8_t*)"phones", NULL, NULL);
         retStr=NULL;
-        FREObject addressesArray = NULL;
-        FRENewObject((const uint8_t*)"Array", 0, NULL, &addressesArray, nil);
-        ABMultiValueRef addresses = ABRecordCopyValue(person, kABPersonAddressProperty);
-        if(addresses)
         {
-            DLog(@"found addresses");
-            int32_t addressNum=0;
-            for (CFIndex k = 0; k<ABMultiValueGetCount(addresses);k++){
-                DLog(@"found address %i",addressNum);
-                 FREObject addressObj=NULL;
-                FRENewObject((const uint8_t*)"Object", 0, NULL, &addressObj,NULL);
-                CFDictionaryRef dict = ABMultiValueCopyValueAtIndex(addresses, k);
-                CFStringRef typeTmp = ABMultiValueCopyLabelAtIndex(addresses, k);
-                CFStringRef labeltype = ABAddressBookCopyLocalizedLabel(typeTmp);
-                if(labeltype)
-                    FRENewObjectFromUTF8(strlen([(__bridge NSString *)labeltype UTF8String])+1, (const uint8_t*)[(__bridge NSString *)labeltype UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"type", retStr, NULL);
-                retStr=NULL;
-                NSString *street = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressStreetKey) copy];
-                if(street)
-                 FRENewObjectFromUTF8(strlen([street UTF8String])+1, (const uint8_t*)[street UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"street", retStr, NULL);
-                retStr=NULL;
-                NSString *city = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressCityKey) copy];
-                if(city)
-                FRENewObjectFromUTF8(strlen([city UTF8String])+1, (const uint8_t*)[city UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"city", retStr, NULL);
-                retStr=NULL;  
-                NSString *state = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressStateKey) copy];
-                if(state)
-                    FRENewObjectFromUTF8(strlen([state UTF8String])+1, (const uint8_t*)[state UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"state", retStr, NULL);
-                retStr=NULL;  
-                NSString *zip = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressZIPKey) copy];
-                if(zip)
-                    FRENewObjectFromUTF8(strlen([zip UTF8String])+1, (const uint8_t*)[zip UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"zip", retStr, NULL);
-                retStr=NULL;  
-                NSString *country = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressCountryKey) copy];
-                if(country)
-                    FRENewObjectFromUTF8(strlen([country UTF8String])+1, (const uint8_t*)[country UTF8String], &retStr);
-                FRESetObjectProperty(addressObj, (const uint8_t*)"country", retStr, NULL);
-                retStr=NULL;  
-               
-                FRESetArrayElementAt(addressesArray, k, addressObj);
-                //[street release];
-                //[city release];
-                //[state release];
-                //[zip release];
-                //[country release];
-                CFRelease(dict);
-                CFRelease(labeltype);
-                CFRelease(typeTmp);
-                addressNum++;
             }
-            CFRelease(addresses);
-        
         }
-            FRESetObjectProperty(contact, (const uint8_t*)"addresses", addressesArray, NULL);
-        
-        CFRelease(addressBook);
+        else
+            FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", retStr, NULL);
+        retStr=NULL;
+
+        // Addressses
+//        FREObject addressesArray = NULL;
+//        FRENewObject((const uint8_t*)"Array", 0, NULL, &addressesArray, nil);
+//        ABMultiValueRef addresses = ABRecordCopyValue(person, kABPersonAddressProperty);
+//        if(addresses)
+//        {
+//            DLog(@"found addresses");
+//            int32_t addressNum=0;
+//            for (CFIndex k = 0; k<ABMultiValueGetCount(addresses);k++)
+//            {    
+//                DLog(@"found address %i",addressNum);
+//                FREObject addressObj=NULL;
+//                FRENewObject((const uint8_t*)"Object", 0, NULL, &addressObj,NULL);
+//                CFDictionaryRef dict = ABMultiValueCopyValueAtIndex(addresses, k);
+//                CFStringRef typeTmp = ABMultiValueCopyLabelAtIndex(addresses, k);
+//                CFStringRef labeltype = ABAddressBookCopyLocalizedLabel(typeTmp);
+//                
+//                DLog(@"Address[%i] starting data conversion for AS3.",addressNum);
+//                
+//                if(labeltype)
+//                    FRENewObjectFromUTF8(strlen([(__bridge NSString *)labeltype UTF8String])+1, (const uint8_t*)[(__bridge NSString *)labeltype UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"type", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].type = %@",addressNum,(__bridge NSString*) labeltype);
+//                
+//                NSString *street = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressStreetKey) copy];
+//                if(street)
+//                 FRENewObjectFromUTF8(strlen([street UTF8String])+1, (const uint8_t*)[street UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"street", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].street = %@",addressNum, street);
+//                
+//                NSString *city = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressCityKey) copy];
+//                if(city)
+//                FRENewObjectFromUTF8(strlen([city UTF8String])+1, (const uint8_t*)[city UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"city", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].city = %@",addressNum, city);
+//                
+//                NSString *state = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressStateKey) copy];
+//                if(state)
+//                    FRENewObjectFromUTF8(strlen([state UTF8String])+1, (const uint8_t*)[state UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"state", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].state = %@",addressNum, state);
+//                
+//                NSString *zip = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressZIPKey) copy];
+//                if(zip)
+//                    FRENewObjectFromUTF8(strlen([zip UTF8String])+1, (const uint8_t*)[zip UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"zip", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].zip = %@",addressNum, zip);
+//                
+//                NSString *country = [(NSString *)CFDictionaryGetValue(dict, kABPersonAddressCountryKey) copy];
+//                if(country)
+//                    FRENewObjectFromUTF8(strlen([country UTF8String])+1, (const uint8_t*)[country UTF8String], &retStr);
+//                FRESetObjectProperty(addressObj, (const uint8_t*)"country", retStr, NULL);
+//                retStr=NULL;
+//                DLog(@"Address[%i].city = %@",addressNum, country);
+//               
+//                FRESetArrayElementAt(addressesArray, k, addressObj);
+//
+//                DLog(@"Set addr inside Array");
+//                //[street release];
+//                //[city release];
+//                //[state release];
+//                //[zip release];
+//                //[country release];
+//                CFRelease(dict);
+//                DLog(@"CFRelease(dict)");
+//                CFRelease(labeltype);
+//                DLog(@"CFRelease(labelType)");
+//                CFRelease(typeTmp);
+//                DLog(@"CFRelease(typeTmp)");
+//                addressNum++;
+//            }
+//            CFRelease(addresses);
+//        }
+//        DLog(@"Adding address array to contact object");
+//        FRESetObjectProperty(contact, (const uint8_t*)"addresses", addressesArray, NULL);
+//        CFRelease(addressBook);
         }
     }
+    
+    NSLog(@"Exiting getContactDetails");
     return contact;
 }
 FREObject getBitmapDimensions(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
@@ -687,7 +716,8 @@ FREObject drawToBitmap(FREContext ctx, void* funcData, uint32_t argc, FREObject 
 
 FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
 {
-    DLog(@"Getting contact data");
+    DLog(@"Entering getContactsSimple");
+    
     FREObject returnedArray = NULL;
     
     if(createOwnAddressBook())
@@ -733,8 +763,9 @@ FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREOb
     }
     DLog(@"Release");
     CFRelease(addressBook);
-    DLog(@"Return data");
     }
+    
+    DLog(@"Exiting getContactsSimple");
     return returnedArray;
 }
 
