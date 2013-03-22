@@ -306,10 +306,12 @@ FREObject hasPermission(FREContext ctx, void* funcData, uint32_t argc, FREObject
 }
 FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
 {
+    NSLog(@"Entering getContactDetails");
     
     uint32_t argrecordId;
     FREObject contact=NULL;
     FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
+
     if(FRE_OK==FREGetObjectAsUint32(argv[0], &argrecordId))
     {
         if(createOwnAddressBook())
@@ -339,8 +341,6 @@ FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREOb
             FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
         
         retStr=NULL;
-        
-        
         
         //person first name
         CFStringRef personName = ABRecordCopyValue(person, kABPersonFirstNameProperty);
@@ -430,8 +430,20 @@ FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREOb
         else
             FRESetObjectProperty(contact, (const uint8_t*)"phones", NULL, NULL);
         retStr=NULL;
+            
+        // Facebook Information
+        ABMultiValueRef socialMulti = ABRecordCopyValue(person, kABPersonSocialProfileProperty);
+        if(socialMulti)
         {
+            for (CFIndex i = 0; i < ABMultiValueGetCount(socialMulti); i++) {
+                NSDictionary *socialData = (__bridge NSDictionary*) ABMultiValueCopyValueAtIndex(socialMulti, i);
+                if ([socialData[@"service"] isEqualToString:(__bridge NSString*)kABPersonSocialProfileServiceFacebook]) {
+                    NSString *facebookInfoString = (NSString*) socialData[@"username"];
+                    FRENewObjectFromUTF8(strlen([facebookInfoString UTF8String])+1, (const uint8_t*)[facebookInfoString UTF8String], &retStr);
+                    FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", retStr, NULL);
+                }
             }
+            CFRelease(socialMulti);
         }
         else
             FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", retStr, NULL);
