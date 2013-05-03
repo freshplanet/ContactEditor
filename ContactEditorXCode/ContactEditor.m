@@ -730,51 +730,77 @@ FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREOb
 {
     DLog(@"Entering getContactsSimple");
     
+    // Retrieve parameters from actionscript side: index and batch length.
+    NSInteger abBatchStartIndexInt;
+    NSInteger abBatchLengthInt;
+    FREGetObjectAsInt32(argv[0], &abBatchStartIndexInt);
+    FREGetObjectAsInt32(argv[1], &abBatchLengthInt);
+    
+    CFIndex abBatchStartIndex = abBatchStartIndexInt;
+    CFIndex abBatchLength = abBatchLengthInt;
+    
+    DLog(@"abBatchStartIndex = %ld, abBatchLength = %ld",abBatchStartIndex, abBatchLength);
+    
     FREObject returnedArray = NULL;
     
-    if(createOwnAddressBook())
+    if( createOwnAddressBook() )
     {
-    CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBook);
-    DLog(@"Parsing data");
-    FRENewObject((const uint8_t*)"Array", 0, NULL, &returnedArray, nil);
-    FRESetArrayLength(returnedArray, CFArrayGetCount(people));
-    int32_t j=0;
-    FREObject retStr=NULL;
-    for (CFIndex i = 0; i < CFArrayGetCount(people); i++) {
-        FREObject contact;
-        FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
+        int32_t indexContactInAS3Array=0;
+        CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBook);
+    
+        FRENewObject((const uint8_t*)"Array", 0, NULL, &returnedArray, nil);
+        FRESetArrayLength(returnedArray, abBatchLength);
         
-        ABRecordRef person = CFArrayGetValueAtIndex(people, i);
+        DLog(@"created Array with length %ld",abBatchLength);
+    
+        FREObject retStr = NULL;
         
-        //person id
-        int personId = (int)ABRecordGetRecordID(person);
-        DLog(@"Adding person with id: %i",personId);
-        FREObject recordId;
-        FRENewObjectFromInt32(personId, &recordId);
-        FRESetObjectProperty(contact, (const uint8_t*)"recordId", recordId, NULL);
-        
-        //composite name
-        CFStringRef personCompositeName = ABRecordCopyCompositeName(person);
-        retStr=NULL;
-        if(personCompositeName)
+        for (; abBatchStartIndex < abBatchLength; abBatchStartIndex++)
         {
-            NSString *personCompositeString = [NSString stringWithString:(__bridge NSString *)personCompositeName];
-            DLog(@"Adding composite name: %@",personCompositeString);
-            FRENewObjectFromUTF8(strlen([personCompositeString UTF8String])+1, (const uint8_t*)[personCompositeString UTF8String], &retStr);
-            FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
-            //[personCompositeString release];
-            CFRelease(personCompositeName);
+            ABRecordRef person = CFArrayGetValueAtIndex(people, abBatchStartIndex);
+            
+            // Contact object.  will contain id, and compositename
+            FREObject contact;
+            FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
+            
+            DLog(@"(1) created contact");
+            
+            // retrieve person id
+            int personId = (int)ABRecordGetRecordID(person);
+            FREObject recordId;
+            FRENewObjectFromInt32(personId, &recordId);
+            FRESetObjectProperty(contact, (const uint8_t*)"recordId", recordId, NULL);
+            
+            DLog(@"(2) retrieve personId");
+            
+            // retrieve composite name
+            CFStringRef personCompositeName = ABRecordCopyCompositeName(person);
+            retStr = NULL;
+            if(personCompositeName) {
+                NSString *personCompositeString = [NSString stringWithString:(__bridge NSString *) personCompositeName];
+                FRENewObjectFromUTF8( strlen([personCompositeString UTF8String])+1,
+                                     (const uint8_t*)[personCompositeString UTF8String],
+                                     &retStr);
+                FRESetObjectProperty( contact,
+                                     (const uint8_t*)"compositename",
+                                     retStr,
+                                     NULL);
+                CFRelease(personCompositeName);
+            } else FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
+            
+            DLog(@"(3) retrieve composite name");
+            
+            DLog(@"contact[%d] = %@", indexContactInAS3Array, personCompositeName);
+            
+            FRESetArrayElementAt(returnedArray, indexContactInAS3Array, contact);    // Add element to Return Array
+            indexContactInAS3Array++;                                                // move index
+            CFRelease(person);
         }
-        else
-            FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
+    
+        DLog(@"releasing objects");
         
-        DLog(@"Adding element to array %ld",i);
-        FRESetArrayElementAt(returnedArray, j, contact);
-        j++;
-        CFRelease(person);
-    }
-    DLog(@"Release");
-    CFRelease(addressBook);
+        CFRelease(people);
+        CFRelease(addressBook);
     }
     
     DLog(@"Exiting getContactsSimple");
@@ -787,13 +813,11 @@ FREObject getContactCount(FREContext ctx, void* funcData, uint32_t argc, FREObje
     
     if(createOwnAddressBook())
     {
-        DLog(@"Getting emails");
         CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBook);
         FRENewObjectFromInt32(CFArrayGetCount(people), &contactCount);
-        // create an instance of Object and save it to FREObject position
-        DLog(@"Release");
+
+        CFRelease(people);
         CFRelease(addressBook);
-        DLog(@"Return data");
     }
     else
         FRENewObjectFromInt32(0, &contactCount);
@@ -808,8 +832,7 @@ FREObject getContactCount(FREContext ctx, void* funcData, uint32_t argc, FREObje
 
 void ContactEditorContextInitializer(void* extData, const uint8_t* ctxType, FREContext ctx, 
                                      uint32_t* numFunctionsToTest, const FRENamedFunction** functionsToSet) {
-	
-    
+    DLog(@"Entering ContactEditorContextInitializer()");
 	*numFunctionsToTest = 13;
 	FRENamedFunction* func = (FRENamedFunction*)malloc(sizeof(FRENamedFunction) * (*numFunctionsToTest));
     
