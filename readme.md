@@ -4,6 +4,8 @@ authors: Paweł Meller & Mateusz Maćkowiak (https://github.com/mateuszmackowiak
 
 ARC support for iOS: Julian Xhokaxhiu <xhokaxhiujulian@gmail.com>
 
+FreshPlanet fork maintained by: Daniel Rodriguez (https://github.com/dornad)
+
 ### iOS6 support!###
 (scroll down to iOS section for info)
 
@@ -55,6 +57,8 @@ To pick a contact it is necessary to ad also :
 			</application>
 			
 ## ANE compilation ##
-To compile the ane, osx widh iOS SDK is needed. This ane uses AddressBook framework, which has to be linked during the compilation (sample ane build.sh is provided in build directory, it already includes the link to AddressBook framework).
+A compiled version of the ANE is included in the bin folder.  To compile the ANE, an iOS development environment is required.
 
-Tested on iPad, iOS 5.01, 6.01 / Android 3.1,4.03
+To compile, open the build folder and run the Ant script.  
+
+Tested on iPad, iOS 5.01, 6.01 / Android 3.1, 4.03
