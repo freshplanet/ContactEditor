@@ -734,47 +734,55 @@ FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREOb
     
     if(createOwnAddressBook())
     {
-    CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBook);
-    DLog(@"Parsing data");
-    FRENewObject((const uint8_t*)"Array", 0, NULL, &returnedArray, nil);
-    FRESetArrayLength(returnedArray, CFArrayGetCount(people));
-    int32_t j=0;
-    FREObject retStr=NULL;
-    for (CFIndex i = 0; i < CFArrayGetCount(people); i++) {
-        FREObject contact;
-        FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
+        // Retrieve parameters from actionscript side: index and batch length.
+        NSInteger abBatchStartIndexInt;
+        NSInteger abBatchLengthInt;
+        FREGetObjectAsInt32(argv[0], &abBatchStartIndexInt);
+        FREGetObjectAsInt32(argv[1], &abBatchLengthInt);
         
-        ABRecordRef person = CFArrayGetValueAtIndex(people, i);
+        CFIndex abBatchStartIndex = abBatchStartIndexInt;
+        CFIndex abBatchLength = abBatchLengthInt;
         
-        //person id
-        int personId = (int)ABRecordGetRecordID(person);
-        DLog(@"Adding person with id: %i",personId);
-        FREObject recordId;
-        FRENewObjectFromInt32(personId, &recordId);
-        FRESetObjectProperty(contact, (const uint8_t*)"recordId", recordId, NULL);
+        CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBook);
+        FRENewObject((const uint8_t*)"Array", 0, NULL, &returnedArray, nil);
+        FRESetArrayLength(returnedArray, abBatchLength);
         
-        //composite name
-        CFStringRef personCompositeName = ABRecordCopyCompositeName(person);
-        retStr=NULL;
-        if(personCompositeName)
+        int32_t returnedArrIndex=0;
+        FREObject retStr=NULL;
+        CFIndex i = abBatchStartIndex;
+        while ( returnedArrIndex < abBatchLength )
         {
-            NSString *personCompositeString = [NSString stringWithString:(__bridge NSString *)personCompositeName];
-            DLog(@"Adding composite name: %@",personCompositeString);
-            FRENewObjectFromUTF8(strlen([personCompositeString UTF8String])+1, (const uint8_t*)[personCompositeString UTF8String], &retStr);
-            FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
-            //[personCompositeString release];
-            CFRelease(personCompositeName);
+            FREObject contact;
+            FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
+            
+            ABRecordRef person = CFArrayGetValueAtIndex(people, i);
+            
+            //person id
+            int personId = (int)ABRecordGetRecordID(person);
+            DLog(@"Adding person with id: %i",personId);
+            FREObject recordId;
+            FRENewObjectFromInt32(personId, &recordId);
+            FRESetObjectProperty(contact, (const uint8_t*)"recordId", recordId, NULL);
+            
+            //composite name
+            CFStringRef personCompositeName = ABRecordCopyCompositeName(person);
+            retStr=NULL;
+            if(personCompositeName)
+            {
+                NSString *personCompositeString = [NSString stringWithString:(__bridge NSString *)personCompositeName];
+                DLog(@"Adding composite name: %@",personCompositeString);
+                FRENewObjectFromUTF8(strlen([personCompositeString UTF8String])+1, (const uint8_t*)[personCompositeString UTF8String], &retStr);
+                FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
+                CFRelease(personCompositeName);
+            }
+            else FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
+            
+            FRESetArrayElementAt(returnedArray, returnedArrIndex, contact);
+            CFRelease(person);   
+            i++;
+            returnedArrIndex++;
         }
-        else
-            FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
-        
-        DLog(@"Adding element to array %ld",i);
-        FRESetArrayElementAt(returnedArray, j, contact);
-        j++;
-        CFRelease(person);
-    }
-    DLog(@"Release");
-    CFRelease(addressBook);
+        CFRelease(addressBook);
     }
     
     DLog(@"Exiting getContactsSimple");

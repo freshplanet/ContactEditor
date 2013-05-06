@@ -185,13 +185,17 @@ package pl.mllr.extensions.contactEditor
 		}
 		
 		/**
-		 * gets all contacts from AddressBook 
-		 * @return an array of contacts with following: compositename, recordId;
-		 * 
+		 * Gets all contacts from AddressBook following "paging" parameters.
+		 *
+		 * @param contactIndex the zero-indexed position from where the ANE will start
+		 * retrieving AddressBook contacts
+		 * @param pageLength Number of contacts to retrieve in this call.
+		 *
+		 * @return an array of contacts with following: compositename, recordId; 
 		 */	
-		public function getContactsSimple():Array
+		public function getContactsSimple( contactIndex:int, pageLength:int ):Array
 		{  
-			return context.call("getContactsSimple") as Array;
+			return context.call("getContactsSimple", contactIndex, pageLength) as Array;
 		}
 		/**
 		 * checks if the user blocked access to address book for this app

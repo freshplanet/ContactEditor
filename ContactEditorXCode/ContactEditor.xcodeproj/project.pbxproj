@@ -61,6 +61,7 @@
 		AEF9D83A148552CF00CB2153 = {
 			isa = PBXGroup;
 			children = (
+				8C4AB85D14F1638100211B16 /* ContactEditor.m */,
 				8C2BE0281506B619007563FC /* ContactEditorViewDetailsHelper.h */,
 				8C2BE0291506B619007563FC /* ContactEditorViewDetailsHelper.m */,
 				8C2BE0201506B265007563FC /* ContactEditorAddContactHelper.h */,
@@ -71,7 +72,6 @@
 				AEF9D8591485532600CB2153 /* FlashRuntimeExtensions.h */,
 				8C4AB86314F1658E00211B16 /* ContactEditor.h */,
 				AEF9D847148552CF00CB2153 /* Frameworks */,
-				8C4AB85D14F1638100211B16 /* ContactEditor.m */,
 				8C2DF1B414FBF8FB00E95C3C /* libContactEditor.a */,
 			);
 			sourceTree = "<group>";
@@ -187,6 +187,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = ContactEditor;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "armv7 armv7s";
@@ -207,6 +208,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = ContactEditor;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
