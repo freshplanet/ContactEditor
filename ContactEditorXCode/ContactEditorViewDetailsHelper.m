@@ -8,7 +8,7 @@
 
 @implementation ContactEditorViewDetailsHelper
 
-static  NSString *event_name = @"contactNotFound";
+//static  NSString *event_name = @"contactNotFound";
 
 
 -(void) showContactDetailsInWindow:(ABRecordRef)person

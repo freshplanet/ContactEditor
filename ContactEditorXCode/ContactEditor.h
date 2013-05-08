@@ -4,12 +4,13 @@
  */
 
 #import "FlashRuntimeExtensions.h"
+#import "AppContactsAccessManager.h"
 
 @interface ContactEditor : NSObject
 {
     
 }
-BOOL createOwnAddressBook(void);
+
 FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 FREObject contactEditorIsSupported(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
