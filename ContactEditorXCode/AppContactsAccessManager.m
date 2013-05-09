@@ -3,7 +3,6 @@
 //  ContactEditor
 //
 //  Created by Daniel Rodriguez on 5/8/13.
-//  Copyright (c) 2013 Randori. All rights reserved.
 //
 
 #import "AppContactsAccessManager.h"
@@ -19,48 +18,41 @@
 {
     ALog(@"Entering requestAddressBookWithCompletionHandler");
     
+    if (handler == NULL) {
+        ALog(@"Error: AddressBookRequestHandler:handler cannot be null.  Returning.");
+        return;
+    }
+    
     ABAddressBookRef addressBookRef = NULL;
     
     if ([self isIOS6])
     {
-        ALog(@"creating addressbook for iOS 6");
         addressBookRef = ABAddressBookCreateWithOptions(nil,nil);
         ABAuthorizationStatus curStatus = ABAddressBookGetAuthorizationStatus();
         if (curStatus == kABAuthStatusNotDetermined)
         {
             status = kABAuthStatusPending;
             ABAddressBookRequestAccessWithCompletion(addressBookRef,^(bool granted, CFErrorRef error) {
-                status = ABAddressBookGetAuthorizationStatus();
-                if (handler != NULL) {
-                    ALog(@"calling handler");
+                dispatch_async(dispatch_get_current_queue(), ^{
+                    status = ABAddressBookGetAuthorizationStatus();
                     handler(addressBookRef, [self isStatusAvailable:status]);
-                }
+                    CFRelease(addressBookRef);
+                });
             });
         }
         else
         {
             status = curStatus;
-            dispatch_async(dispatch_get_current_queue(), ^ {
-               if (handler != nil) {
-                   ALog(@"calling handler");
-                   handler(addressBookRef, [self isStatusAvailable:status]);
-               }
-            });
+            handler(addressBookRef, [self isStatusAvailable:status]);
+            CFRelease(addressBookRef);
         }
     }
     else
     {
-        ALog(@"creating addressbook for iOS 5 or lower");
         addressBookRef = ABAddressBookCreate();
         status = kABAuthStatusAuthorized;
-        if (handler != NULL) {
-            ALog(@"calling handler");
-            handler(addressBookRef, [self isStatusAvailable:status]);
-        }
-        else {
-            // not using it, so release it.
-            CFRelease(addressBookRef);
-        }
+        handler(addressBookRef, [self isStatusAvailable:status]);
+        CFRelease(addressBookRef);
     }
     
     ALog(@"Exiting requestAddressBookWithCompletionHandler");

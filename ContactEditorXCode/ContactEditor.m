@@ -246,7 +246,6 @@ FREObject hasPermission(FREContext ctx, void* funcData, uint32_t argc, FREObject
         } else {
             FRENewObjectFromBool(NO, &retVal);
         }
-        CFRelease(addressBookRef);
     }];
     
     return retVal;
@@ -419,9 +418,6 @@ FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREOb
                 // Address Book Contact Addressses will be added later... (see git history)
                 
                 ALog(@"Extracted all information from abAddressBook API.  Returning to AS3 side of NativeExtension");
-                
-                // Core Foundation Object cleanup
-                CFRelease(addressBookRef);
             }
         }];
     }
@@ -695,11 +691,7 @@ FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREOb
             ALog(@"Finished populating array.  will release CF objects and return");
             
             // Release Core Foundation Objects
-            ALog(@"releasing people");
             CFRelease(people);
-            ALog(@"releasing addressBookRef");
-            CFRelease(addressBookRef);
-            ALog(@"done releasing CF objects");
         }
     }];
     
@@ -718,8 +710,6 @@ FREObject getContactCount(FREContext ctx, void* funcData, uint32_t argc, FREObje
             CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBookRef);
             FRENewObjectFromInt32(CFArrayGetCount(people), &contactCount);
             CFRelease(people);
-            CFRelease(addressBookRef);
-            
         } else {
             FRENewObjectFromInt32(0, &contactCount);
         }
