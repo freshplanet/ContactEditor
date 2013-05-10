@@ -37,15 +37,6 @@ package pl.mllr.extensions.contactEditor
 			}
 		}
 		
-		protected function onStatus(event:StatusEvent):void
-		{
-			if(event.code==ContactEditorEvent.CONTACT_SELECTED)
-				this.dispatchEvent(new ContactEditorEvent(ContactEditorEvent.CONTACT_SELECTED,event.level));
-			else if(hasEventListener(StatusEvent.STATUS))
-				this.dispatchEvent(event.clone());
-			else
-				trace(event.type+"   "+event.code+"  "+event.level);
-		}
 		/**
 		 *Adds contact to AddressBook 
 		 * @param name first name
@@ -187,15 +178,17 @@ package pl.mllr.extensions.contactEditor
 		/**
 		 * Gets all contacts from AddressBook following "paging" parameters.
 		 *
+		 * @param callback function( contacts:Array ):void
 		 * @param contactIndex the zero-indexed position from where the ANE will start
 		 * retrieving AddressBook contacts
 		 * @param pageLength Number of contacts to retrieve in this call.
 		 *
 		 * @return an array of contacts with following: compositename, recordId; 
 		 */	
-		public function getContactsSimple( contactIndex:int, pageLength:int ):Array
+		public function getContactsSimple( callback:Function, contactIndex:int, pageLength:int ):void
 		{  
-			return context.call("getContactsSimple", contactIndex, pageLength) as Array;
+			this._callback = callback;
+			context.call("getContactsSimple", contactIndex, pageLength);
 		}
 		/**
 		 * checks if the user blocked access to address book for this app
@@ -204,14 +197,20 @@ package pl.mllr.extensions.contactEditor
 		{  
 			return context.call("hasPermission") as Boolean;
 		}
+
+		private var _callback:Function;
+
+
 		/**
-		 * gets details of specified contact from AddressBook 
-		 * @return an object with following: name, lastname, compositename, birthdate, recordid, phones (array), emails (array);
+		 * Gets Details of a Contact.
+		 *
+		 * @param callback:  function( detailedContact:Object ) :void
 		 * 
 		 */	
-		public function getContactDetails(recordId:int):Object
+		public function getContactDetails(callback:Function, recordId:int):void
 		{  
-			return context.call("getContactDetails",recordId) as Object;
+			this._callback = callback;
+			context.call("getContactDetails",recordId);
 		}
 
 		
@@ -258,6 +257,42 @@ package pl.mllr.extensions.contactEditor
 			return _isSupp;
 
 		}
+
+		protected function onStatus(event:StatusEvent):void
+		{
+			var callback:Function = _callback;
+			var fromNativeExtension:Object;
+			if (event.code == ContactEditorEvent.SIMPLE_CONTACTS_READY)
+			{
+				if (callback != null)
+				{
+					_callback = null;
+					fromNativeExtension = context.call("retrieveSimpleContacts");
+					callback( fromNativeExtension as Array);
+				}
+			}
+			else if (event.code == ContactEditorEvent.DETAILED_CONTACT_READY)
+			{
+				if (callback != null)
+				{
+					_callback = null;
+					fromNativeExtension = context.call("retrieveDetailedContact");
+					callback(fromNativeExtension);
+				}
+			}
+			else if(event.code==ContactEditorEvent.CONTACT_SELECTED)
+			{
+				this.dispatchEvent(new ContactEditorEvent(ContactEditorEvent.CONTACT_SELECTED,event.level));
+			}
+			else if(hasEventListener(StatusEvent.STATUS))
+			{
+				this.dispatchEvent(event.clone());
+			}
+			else {
+				trace(event.type+"   "+event.code+"  "+event.level);
+			}
+		}
+
 	}
 }
 

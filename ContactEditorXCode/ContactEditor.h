@@ -7,29 +7,30 @@
 #import "AppContactsAccessManager.h"
 
 @interface ContactEditor : NSObject
-{
-    
-}
 
-FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject contactEditorIsSupported(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
-FREObject removeContact(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject addContact(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject hasPermission(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject getContactCount(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject showContactPicker(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
-FREObject addContactInWindow(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
-FREObject showContactDetailsInWindow(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
-FREObject drawToBitmap(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject setContactImage(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-FREObject getBitmapDimensions(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-void ContactEditorContextInitializer(void* extData, const uint8_t* ctxType, FREContext ctx, 
-                                     uint32_t* numFunctionsToTest, const FRENamedFunction** functionsToSet);
-void ContactEditorContextFinalizer(FREContext ctx);
-void ContactEditorExtInitializer(void** extDataToSet, FREContextInitializer* ctxInitializerToSet, 
-                                 FREContextFinalizer* ctxFinalizerToSet);
+@property (nonatomic, strong) NSMutableArray *simpleContacts;
 
-void ContactEditorExtFinalizer(void* extData);
++ (id) sharedInstance;
+
+- (void) getNumContacts;
+- (void) getSimpleContactsWithBatchStart:(NSInteger*)batchStart batchLength:(NSInteger*)batchLength;
 
 @end
+
+// Main Functions
+DEFINE_ANE_FUNCTION(getContactsSimple);
+DEFINE_ANE_FUNCTION(getContactDetails);
+DEFINE_ANE_FUNCTION(isSupported);
+DEFINE_ANE_FUNCTION(getContactCount);
+
+// Functions that return values (Async)
+DEFINE_ANE_FUNCTION(retrieveSimpleContacts);
+DEFINE_ANE_FUNCTION(retrieveContactDetails);
+
+// ANE Setup
+void ContactEditorContextInitializer(void* extData, const uint8_t* ctxType, FREContext ctx, uint32_t* numFunctionsToTest, const FRENamedFunction** functionsToSet);
+void ContactEditorContextFinalizer(FREContext ctx);
+void ContactEditorExtInitializer(void** extDataToSet, FREContextInitializer* ctxInitializerToSet, FREContextFinalizer* ctxFinalizerToSet);
+void ContactEditorExtFinalizer(void* extData);
+
+
