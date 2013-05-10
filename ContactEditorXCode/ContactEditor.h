@@ -13,7 +13,7 @@
 + (id) sharedInstance;
 
 - (void) getNumContacts;
-- (void) getSimpleContactsWithBatchStart:(NSInteger*)batchStart batchLength:(NSInteger*)batchLength;
+- (void) getSimpleContactsWithBatchStart:(NSInteger)batchStart batchLength:(NSInteger)batchLength;
 
 @end
 

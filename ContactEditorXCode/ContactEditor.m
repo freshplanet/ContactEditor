@@ -49,21 +49,25 @@ static ContactEditor *sharedInstance = nil;
             FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"NUM_CONTACT_UPDATED",(const uint8_t*) [numContacts UTF8String]);
         }
         else {
-            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", NULL);
+            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", (const uint8_t*)"ERROR");
         }
     }];
 }
 
-- (void) getSimpleContactsWithBatchStart:(NSInteger*)batchStart batchLength:(NSInteger*)batchLength
+- (void) getSimpleContactsWithBatchStart:(NSInteger)batchStart batchLength:(NSInteger)batchLength
 {
     AppContactsAccessManager *accessManager = [AppContactsAccessManager new];
     [accessManager requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
+        
         // Start by initializaing our contact array
         self.simpleContacts = [[NSMutableArray alloc] init];
+        
         if (available)
         {
-            NSInteger *numContactsProcessed = 0;
-            NSInteger *indexCurrentContact = batchStart;
+            int numContactsProcessed = 0;
+            int indexCurrentContact = batchStart;
+            
+            DLog(@" will extract contacts from batchStart %i with batchLength %i", batchStart, batchLength);
             
             CFArrayRef contacts = ABAddressBookCopyArrayOfAllPeople(addressBookRef);
             while( numContactsProcessed < batchLength )
@@ -73,6 +77,7 @@ static ContactEditor *sharedInstance = nil;
                 
                 NSMutableDictionary *contactDict = [[NSMutableDictionary alloc] initWithCapacity:2];
                 [contactDict setObject:[NSNumber numberWithInt:(int)ABRecordGetRecordID(contact)] forKey:@"contactId"];
+                
                 if (compositeName) {
                     [contactDict setObject:[NSString stringWithString:CFBridgingRelease(compositeName)] forKey:@"compositeName"];
                 } else {
@@ -80,16 +85,21 @@ static ContactEditor *sharedInstance = nil;
                 }
                 
                 [self.simpleContacts addObject:contactDict];
+                
+                DLog(@"Contact # %i processed",indexCurrentContact);
+                
                 indexCurrentContact++;
+                numContactsProcessed++;
             }
+            
+            DLog(@"Extracted contacts.  Currently simpleContacts holds %i entries", [self.simpleContacts count]);
      
             CFRelease(contacts);
-            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"SIMPLE_CONTACTS_UPDATED", NULL);
+            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"SIMPLE_CONTACTS_UPDATED", (const uint8_t*)"OK");
         }
         else
         {
-            // the user do not have access to the AddressBook.
-            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", NULL);
+            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", (const uint8_t*)"ERROR");
         }
     }];
 }
@@ -100,18 +110,19 @@ static ContactEditor *sharedInstance = nil;
 
 DEFINE_ANE_FUNCTION(getContactsSimple)
 {
-    NSLog(@"Entering getContactsSimple");
+    ALog(@"Entering getContactsSimple");
     
     int batchStartInt;
     FREGetObjectAsInt32(argv[0], &batchStartInt);
+    NSInteger batchStart = batchStartInt;
     
     int batchLengthInt;
     FREGetObjectAsInt32(argv[1], &batchLengthInt);
+    NSInteger batchLength = batchLengthInt;
     
-    NSInteger *batchStart = [NSInteger]
-    [[ContactEditor sharedInstance] getSimpleContactsWithBatchStart:[NSInteger num] batchLength:<#(NSInteger *)#>]
+    [[ContactEditor sharedInstance] getSimpleContactsWithBatchStart:batchStart batchLength:batchLength];
     
-    NSLog(@"Exiting getContactsSimple");
+    ALog(@"Exiting getContactsSimple");
     return NULL;
 }
 
@@ -127,108 +138,60 @@ DEFINE_ANE_FUNCTION(isSupported)
 
 DEFINE_ANE_FUNCTION(getContactCount)
 {
-    NSLog(@"Entering getContactCount");
+    ALog(@"Entering getContactCount");
     
     [[ContactEditor sharedInstance] getNumContacts];
     
-    NSLog(@"Exiting getContactCount");
+    ALog(@"Exiting getContactCount");
     return NULL;
 }
 
 // Functions that return values (Async)
+
 DEFINE_ANE_FUNCTION(retrieveSimpleContacts)
 {
+    ALog(@"Entering retrieveSimpleContacts");
     
+    // Retrieve the contacts
+    NSMutableArray * simpleContacts = [[ContactEditor sharedInstance] simpleContacts];
     
-    //FREObject getContactsSimple(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
-    //{
-    //    ALog(@"Entering getContactsSimple");
-    //
-    //    __block NSInteger abBatchStartIndexInt;
-    //    __block NSInteger abBatchLengthInt;
-    //    __block NSMutableArray *simpleContacts;
-    //
-    //    // Retrieve parameters from ActionScript side.
-    //    DLog(@"Retrieving parameters from AS3 side");
-    //    FREGetObjectAsInt32(argv[0], &abBatchStartIndexInt);
-    //    FREGetObjectAsInt32(argv[1], &abBatchLengthInt);
-    //
-    //    // Attempt to access the AddressBook
-    //    DLog(@"Attempting acesss to AddressBook");
-    //    AppContactsAccessManager *accessManager = [AppContactsAccessManager new];
-    //    [accessManager requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
-    //        if (available) {
-    //
-    //            DLog(@"Access Granted, proceeding to retrieve list of contacts");
-    //            // cast integers into Core Foundation objects
-    //            CFIndex abBatchStartIndex = abBatchStartIndexInt;
-    //            CFIndex abBatchLength = abBatchLengthInt;
-    //
-    //            // Initialize AS3 Array of Contacts
-    //            DLog(@"Initialize AS3 Array of Contacts");
-    //            CFArrayRef people = ABAddressBookCopyArrayOfAllPeople(addressBookRef);
-    //
-    //            FREObject retStr = NULL;
-    //            int32_t currentIndex = 0;
-    //
-    //            while (currentIndex < abBatchLength)
-    //            {
-    //                FREObject contact = NULL;
-    //                FRENewObject((const uint8_t*)"Object", 0, NULL, &contact, NULL);
-    //                ABRecordRef person = CFArrayGetValueAtIndex(people, abBatchStartIndex);
-    //                ALog(@"Retriving record number %i at position in addrBk %li",currentIndex,abBatchStartIndex);
-    //
-    //                if (person)
-    //                {
-    //                    // Extract Record id
-    //                    FREObject personId;
-    //                    int recordId = (int) ABRecordGetRecordID(person);
-    //                    FRENewObjectFromInt32(recordId, &personId);
-    //                    FRESetObjectProperty(contact, (const uint8_t*) "recordId", personId, NULL);
-    //                    ALog(@"Extracting record id");
-    //
-    //                    // Extract Composite Name
-    //                    CFStringRef compositeName = ABRecordCopyCompositeName(person);
-    //                    if (compositeName)
-    //                    {
-    //                        NSString *personCompositeStr = [NSString stringWithString:CFBridgingRelease(compositeName)];
-    //                        FRENewObjectFromUTF8(strlen([personCompositeStr UTF8String]) + 1,
-    //                                             (const uint8_t*) [personCompositeStr UTF8String],
-    //                                             &retStr);
-    //                        FRESetObjectProperty(contact, (const uint8_t*) "compositeName", retStr, NULL);
-    //                    } else {
-    //                        FRESetObjectProperty(contact, (const uint8_t*) "compositeName", NULL, NULL);
-    //                    }
-    //                    DLog(@"Extracting composite name");
-    //
-    //                    // Insert Person AS3 Object into AS3 Array
-    //                    FRESetArrayElementAt(returnedArray, currentIndex, contact);
-    //                    DLog(@"inserting person object into as3 array at position %i",currentIndex);
-    //                }
-    //
-    //                currentIndex++;
-    //                abBatchStartIndex++;
-    //            }
-    //
-    //            DLog(@"Finished populating array.  will release CF objects and return");
-    //
-    //            // Release Core Foundation Objects
-    //            CFRelease(people);
-    //
-    //            // Dispatch event
-    //            simpleContacts = returnedArray;
-    //            FREDispatchStatusEventAsync(ctx, (const uint8_t*)"simpleContactsReady", (const uint8_t *)"OK");
-    //        }
-    //    }];
-    //
-    //    ALog(@"Exiting getContactsSimple");
-    //    return NULL;
-    //}
-
+    DLog(@"Retrieved contacts.  Currently simpleContacts holds %i entries", [simpleContacts count]);
     
+    // Create the AS3 Array
+    FREObject simpleContactsArr;
+    FRENewObject((const uint8_t *)"Array", 0, NULL, &simpleContactsArr, nil);
+    FRESetArrayLength(simpleContactsArr, [simpleContacts count]);
     
+    // Iterate over the contacts
+    for ( int i = 0; i < [simpleContacts count]; i++ )
+    {
+        // Extract the contact
+        NSDictionary *contactDict = [simpleContacts objectAtIndex:i];
+        
+        // Create the ActionScript Contact object
+        FREObject contact = NULL;
+        FRENewObject((const uint8_t*)"Object", 0, NULL, &contact, NULL);
+        
+        // record id
+        FREObject personId;
+        int personIdInt = [contactDict valueForKey:@"contactId"];
+        FRENewObjectFromInt32(personIdInt, &personId);
+        FRESetObjectProperty(contact, (const uint8_t*) "recordId", personId, NULL);
+        
+        // composite name
+        FREObject compositeName;
+        NSString *compositeNameStr = [contactDict valueForKey:@"compositeName"];
+        FRENewObjectFromUTF8(strlen([compositeNameStr UTF8String]) + 1,
+                             (const uint8_t*) [compositeNameStr UTF8String],
+                             &compositeName);
+        FRESetObjectProperty(contact, (const uint8_t*) "compositeName", compositeName, NULL);
+        
+        // Add to Array
+        FRESetArrayElementAt(simpleContactsArr, i, contact);
+    }
     
-    return NULL;
+    ALog(@"Exiting retrieveSimpleContacts");
+    return simpleContactsArr;
 }
 
 DEFINE_ANE_FUNCTION(retrieveContactDetails)
@@ -477,26 +440,30 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
 void ContactEditorContextInitializer(void* extData, const uint8_t* ctxType, FREContext ctx, uint32_t* numFunctionsToTest, const FRENamedFunction** functionsToSet)
 {
     // Register the links btwn AS3 and ObjC. (dont forget to modify the nbFuntionsToLink integer if you are adding/removing functions)
-    NSInteger nbFunctionsToLink = 4;
+    NSInteger nbFunctionsToLink = 5;
     *numFunctionsToTest = nbFunctionsToLink;
     
 	FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * nbFunctionsToLink);
     
-    func[0].name = (const uint8_t*)"getContactsSimple";
+    func[0].name = (const uint8_t*)"getContactCount";
 	func[0].functionData = NULL;
-	func[0].function = &getContactsSimple;
+	func[0].function = &getContactCount;
     
-    func[1].name = (const uint8_t*)"getContactDetails";
+    func[1].name = (const uint8_t*)"getContactsSimple";
 	func[1].functionData = NULL;
-	func[1].function = &getContactDetails;
-        
-    func[2].name = (const uint8_t*)"retrieveSimpleContacts";
-    func[2].functionData = NULL;
-    func[2].function = &retrieveSimpleContacts;
+	func[1].function = &getContactsSimple;
     
-    func[3].name = (const uint8_t*)"retrieveDetailedContact";
+    func[2].name = (const uint8_t*)"getContactDetails";
+	func[2].functionData = NULL;
+	func[2].function = &getContactDetails;
+        
+    func[3].name = (const uint8_t*)"retrieveSimpleContacts";
     func[3].functionData = NULL;
-    func[3].function = &retrieveContactDetails;
+    func[3].function = &retrieveSimpleContacts;
+    
+    func[4].name = (const uint8_t*)"retrieveDetailedContact";
+    func[4].functionData = NULL;
+    func[4].function = &retrieveContactDetails;
     
 	*functionsToSet = func;
     
