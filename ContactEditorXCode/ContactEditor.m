@@ -12,6 +12,7 @@ FREContext AirCECtx = nil;
 @implementation ContactEditor
 
 @synthesize simpleContacts = _simpleContacts;
+@synthesize detailedContacts = _detailedContacts;
 
 #pragma mark - Singleton
 
@@ -73,15 +74,18 @@ static ContactEditor *sharedInstance = nil;
             while( numContactsProcessed < batchLength )
             {
                 ABRecordRef contact = CFArrayGetValueAtIndex(contacts, indexCurrentContact);
-                CFStringRef compositeName = ABRecordCopyCompositeName(contact);
-                
                 NSMutableDictionary *contactDict = [[NSMutableDictionary alloc] initWithCapacity:2];
-                [contactDict setObject:[NSNumber numberWithInt:(int)ABRecordGetRecordID(contact)] forKey:@"contactId"];
                 
+                // Record Id
+                NSNumber *recordId = [NSNumber numberWithInt:ABRecordGetRecordID(contact)];
+                [contactDict setObject:recordId forKey:@"recordId"];
+                
+                // Composite Name
+                CFStringRef compositeName = ABRecordCopyCompositeName(contact);
                 if (compositeName) {
-                    [contactDict setObject:[NSString stringWithString:CFBridgingRelease(compositeName)] forKey:@"compositeName"];
+                    [contactDict setObject:[NSString stringWithString:CFBridgingRelease(compositeName)] forKey:@"compositename"];
                 } else {
-                    [contactDict setObject:@"" forKey:@"compositeName"];
+                    [contactDict setObject:[NSNull null] forKey:@"compositename"];
                 }
                 
                 [self.simpleContacts addObject:contactDict];
@@ -102,6 +106,121 @@ static ContactEditor *sharedInstance = nil;
             FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", (const uint8_t*)"ERROR");
         }
     }];
+}
+
+- (void) getDetailedContactWithRecordId:(int)recordId
+{
+    AppContactsAccessManager *accessManager = [AppContactsAccessManager new];
+    [accessManager requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
+        if (available)
+        {
+            DLog(@"Retrieving ABRecordRef for contact at position %i",recordId);
+        
+            // Change initWithCapacity parameter as you add/remove parameters
+            NSMutableDictionary *contactDict = [[NSMutableDictionary alloc] initWithCapacity:7];
+            
+            ABRecordRef contact = ABAddressBookGetPersonWithRecordID(addressBookRef, recordId);
+            
+            if ( contact != NULL )
+            {
+                // Record ID
+                int recordIdInt = (int) ABRecordGetRecordID(contact);
+                [contactDict setObject:[NSNumber numberWithInt:recordIdInt] forKey:@"recordId"];
+                
+                // Composite Name
+                CFStringRef compositeName = ABRecordCopyCompositeName(contact);
+                if (compositeName) {
+                    [contactDict setObject:[NSString stringWithString:CFBridgingRelease(compositeName)]
+                                    forKey:@"compositename"];
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"compositename"];
+                }
+                
+                // First Name
+                CFStringRef firstName = ABRecordCopyValue(contact, kABPersonFirstNameProperty);
+                if (firstName) {
+                    [contactDict setObject:[NSString stringWithString:CFBridgingRelease(firstName)]
+                                    forKey:@"firstName"];
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"firstName"];
+                }
+                
+                // Last Name
+                CFStringRef lastName = ABRecordCopyValue(contact, kABPersonLastNameProperty);
+                if (lastName) {
+                    [contactDict setObject:[NSString stringWithString:CFBridgingRelease(lastName)]
+                                    forKey:@"lastName"];
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"lastName"];
+                }
+                
+                // Emails
+                ABMultiValueRef emails = ABRecordCopyValue(contact, kABPersonEmailProperty);
+                if (emails) {
+                    NSMutableArray *emailArr = [NSMutableArray arrayWithCapacity:ABMultiValueGetCount(emails)];
+                    for (CFIndex i =0; i < ABMultiValueGetCount(emails); i++)
+                    {
+                        [emailArr insertObject:(NSString*)CFBridgingRelease(ABMultiValueCopyValueAtIndex(emails, i))
+                                       atIndex:i];
+                    }
+                    CFRelease(emails);
+                    [contactDict setObject:emailArr forKey:@"emails"];
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"emails"];
+                }
+                
+                // Phones
+                ABMultiValueRef phones = ABRecordCopyValue(contact, kABPersonPhoneProperty);
+                if (phones) {
+                    NSMutableArray *phonesArr = [NSMutableArray arrayWithCapacity:ABMultiValueGetCount(phones)];
+                    for (CFIndex i =0; i < ABMultiValueGetCount(phones); i++)
+                    {
+                        [phonesArr insertObject:(NSString*)CFBridgingRelease(ABMultiValueCopyValueAtIndex(phones, i))
+                                        atIndex:i];
+                    }
+                    CFRelease(phones);
+                    [contactDict setObject:phonesArr forKey:@"phones"];
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"phones"];
+                }
+                
+                // Facebook Username
+                ABMultiValueRef socialNetworkInfo = ABRecordCopyValue(contact, kABPersonSocialProfileProperty);
+                if (socialNetworkInfo) {
+                    for (CFIndex i =0; i < ABMultiValueGetCount(socialNetworkInfo); i++)
+                    {
+                        NSDictionary *socialData = CFBridgingRelease(ABMultiValueCopyValueAtIndex(socialNetworkInfo, i));
+                        if ([socialData[@"service"] isEqualToString:(__bridge NSString*)kABPersonSocialProfileServiceFacebook])
+                        {
+                            [contactDict setObject:(NSString*)socialData[@"username"]
+                                            forKey:@"facebookInfo"];
+                        }
+                    }
+                    CFRelease(socialNetworkInfo);
+                } else {
+                    [contactDict setObject:[NSNull null] forKey:@"facebookInfo"];
+                }
+                
+                // Add to list of detailed contacts
+                if (self.detailedContacts == nil) {
+                    self.detailedContacts = [[NSMutableArray alloc] init];
+                }
+                [self.detailedContacts addObject:contactDict];
+                
+                // dispatch event letting the AS3 side know that we are done.
+                NSString *recordIsStr = [NSString stringWithFormat:@"%d",recordIdInt];
+                FREDispatchStatusEventAsync(AirCECtx,
+                                            (const uint8_t*)"DETAILED_CONTACT_UPDATED",
+                                            (const uint8_t*)[recordIsStr UTF8String]);
+                
+            }
+        }
+        else
+        {
+            FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"ADDRESS_BOOK_ACCESS_DENIED", (const uint8_t*)"ERROR");
+        }
+    }];
+    
 }
 
 @end
@@ -128,11 +247,21 @@ DEFINE_ANE_FUNCTION(getContactsSimple)
 
 DEFINE_ANE_FUNCTION(getContactDetails)
 {
-    return NULL;
-}
-
-DEFINE_ANE_FUNCTION(isSupported)
-{
+    ALog(@"Entering getContactDetails");
+    
+    int recordId ;
+    uint32_t argRecordId;
+    if (FREGetObjectAsUint32(argv[0], &argRecordId) == FRE_OK)
+    {
+        recordId = argRecordId;
+        [[ContactEditor sharedInstance] getDetailedContactWithRecordId:recordId];
+    }
+    else
+    {
+        FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"INVALID_RECORD_ID", (const uint8_t*)"not a valid param");
+    }
+    
+    ALog(@"Exiting getContactDetails");
     return NULL;
 }
 
@@ -174,17 +303,21 @@ DEFINE_ANE_FUNCTION(retrieveSimpleContacts)
         
         // record id
         FREObject personId;
-        int personIdInt = [contactDict valueForKey:@"contactId"];
-        FRENewObjectFromInt32(personIdInt, &personId);
+        NSNumber *recordId = [contactDict valueForKey:@"recordId"];
+        FRENewObjectFromInt32(recordId.integerValue, &personId);
         FRESetObjectProperty(contact, (const uint8_t*) "recordId", personId, NULL);
         
         // composite name
-        FREObject compositeName;
-        NSString *compositeNameStr = [contactDict valueForKey:@"compositeName"];
-        FRENewObjectFromUTF8(strlen([compositeNameStr UTF8String]) + 1,
-                             (const uint8_t*) [compositeNameStr UTF8String],
-                             &compositeName);
-        FRESetObjectProperty(contact, (const uint8_t*) "compositeName", compositeName, NULL);
+        NSString *compositeNameStr = [contactDict valueForKey:@"compositename"];
+        if ( (NSNull*)compositeNameStr != [NSNull null] ) {
+            FREObject compositeName;
+            FRENewObjectFromUTF8(strlen([compositeNameStr UTF8String]) + 1,
+                                 (const uint8_t*) [compositeNameStr UTF8String],
+                                 &compositeName);
+            FRESetObjectProperty(contact, (const uint8_t*) "compositename", compositeName, NULL);
+        } else {
+            FRESetObjectProperty(contact, (const uint8_t*) "compositename", NULL, NULL);
+        }
         
         // Add to Array
         FRESetArrayElementAt(simpleContactsArr, i, contact);
@@ -196,244 +329,121 @@ DEFINE_ANE_FUNCTION(retrieveSimpleContacts)
 
 DEFINE_ANE_FUNCTION(retrieveContactDetails)
 {
-    return NULL;
+    ALog(@"Entering retrieveContactDetails");
+    
+    NSMutableDictionary *contactDict = [[[ContactEditor sharedInstance] detailedContacts] objectAtIndex:0];
+    [[[ContactEditor sharedInstance] detailedContacts] removeObjectAtIndex:0];
+    
+    FREObject stringValue = NULL;
+    FREObject contact = NULL;
+    FRENewObject((const uint8_t*)"Object", 0, NULL, &contact, NULL);
+    
+    // Record ID
+    FREObject personId;
+    NSNumber *recordId = [contactDict valueForKey:@"recordId"];
+    FRENewObjectFromInt32(recordId.integerValue, &personId);
+    FRESetObjectProperty(contact, (const uint8_t*) "recordId", personId, NULL);
+    
+    // Composite Name
+    NSString * compositeName = [contactDict valueForKey:@"compositename"];
+    if ( (NSNull*)compositeName != [NSNull null] ) {
+        ALog(@"compositename = %@",compositeName);
+        FRENewObjectFromUTF8(strlen([compositeName UTF8String])+1,
+                             (const uint8_t*)[compositeName UTF8String],
+                             &stringValue);
+        FRESetObjectProperty(contact, (const uint8_t*)"compositename", &stringValue, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*)"compositename", NULL, NULL);
+    }
+
+    // First name
+    stringValue = NULL;
+    NSString * firstName = [contactDict valueForKey:@"firstName"];
+    if ( (NSNull*)firstName != [NSNull null] ) {
+        ALog(@"firstName = %@",firstName);
+        FRENewObjectFromUTF8(strlen([firstName UTF8String])+1,
+                             (const uint8_t*)[firstName UTF8String],
+                             &stringValue);
+        FRESetObjectProperty(contact, (const uint8_t*)"name", &stringValue, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*)"name", NULL, NULL);
+    }
+    
+    // Last name
+    stringValue = NULL;
+    NSString * lastName = [contactDict valueForKey:@"lastName"];
+    if ( (NSNull*)lastName != [NSNull null] ) {
+        ALog(@"lastName = %@",firstName);
+        FRENewObjectFromUTF8(strlen([lastName UTF8String])+1,
+                             (const uint8_t*)[lastName UTF8String],
+                             &stringValue);
+        FRESetObjectProperty(contact, (const uint8_t*)"lastname", &stringValue, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*)"lastname", NULL, NULL);
+    }
+    
+    // Emails
+    stringValue = NULL;
+    NSMutableArray *emails = [contactDict valueForKey:@"emails"];
+    if ( (NSNull*)emails != [NSNull null] ) {
+        FREObject emailsArray = NULL;
+        FRENewObject((const uint8_t *)"Array", 0, NULL, &emailsArray, NULL);
+        FRESetArrayLength(emailsArray, [emails count]);
+        for (int i=0; i < [emails count]; i++)
+        {
+            NSString *email = [emails objectAtIndex:i];
+            ALog(@"email[%d] = %@",i,email);
+            if (email) {
+                FRENewObjectFromUTF8(strlen([email UTF8String]+1),
+                                     (const uint8_t*) [email UTF8String],
+                                     &stringValue);
+                FRESetArrayElementAt(emailsArray, i, stringValue);
+            }
+        }
+        FRESetObjectProperty(contact, (const uint8_t*) "emails", emailsArray, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*) "emails", NULL, NULL);
+    }
+    
+    // Phones
+    stringValue = NULL;
+    NSMutableArray *phones = [contactDict valueForKey:@"phones"];
+    if ( (NSNull*)phones != [NSNull null] ) {
+        FREObject phonesArray = NULL;
+        FRENewObject((const uint8_t *)"Array", 0, NULL, &phonesArray, NULL);
+        FRESetArrayLength(phonesArray, [phones count]);
+        for (int i=0; i < [phones count]; i++)
+        {
+            NSString *phone = [phones objectAtIndex:i];
+            ALog(@"phone[%d] = %@",i,phone);
+            if (phone) {
+                FRENewObjectFromUTF8(strlen([phone UTF8String]+1),
+                                     (const uint8_t*) [phone UTF8String],
+                                     &stringValue);
+                FRESetArrayElementAt(phonesArray, i, stringValue);
+            }
+        }
+        FRESetObjectProperty(contact, (const uint8_t*) "phones", phonesArray, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*) "phones", NULL, NULL);
+    }
+    
+    // Facebook Info
+    stringValue = NULL;
+    NSString * facebookName = [contactDict valueForKey:@"lastName"];
+    if ( (NSNull*)facebookName != [NSNull null] ) {
+        ALog(@"facebookName = %@",facebookName);
+        FRENewObjectFromUTF8(strlen([facebookName UTF8String])+1,
+                             (const uint8_t*)[facebookName UTF8String],
+                             &stringValue);
+        FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", &stringValue, NULL);
+    } else {
+        FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", NULL, NULL);
+    }
+    
+    ALog(@"Exiting retrieveContactDetails");
+    return contact;
 }
-
-
-//FREObject contactEditorIsSupported(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] ){
-//    FREObject retVal;
-//    if(FRENewObjectFromBool(YES, &retVal) == FRE_OK){
-//        return retVal;
-//    }else{
-//        return nil;
-//    }
-//}
-//
-//FREObject hasPermission(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
-//{
-//    __block FREObject retVal = NULL;
-//
-//    AppContactsAccessManager *accessMgr = [AppContactsAccessManager new];
-//    [accessMgr requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
-//        if (available) {
-//            FRENewObjectFromBool(YES, &retVal);
-//        } else {
-//            FRENewObjectFromBool(NO, &retVal);
-//        }
-//    }];
-//    
-//    return retVal;
-//}
-//FREObject getContactDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
-//{
-//    DLog(@"Entering getContactDetails");
-//    
-//    DLog(@"Extracting recordId arg sent from AS3");
-//    uint32_t argrecordId;
-//    __block FREObject contact=NULL;
-//    FRENewObject((const uint8_t*)"Object", 0, NULL, &contact,NULL);
-//
-//    if( FREGetObjectAsUint32(argv[0], &argrecordId) == FRE_OK)
-//    {
-//        DLog(@"Requesting addressBook access to AppContactAccessManager");
-//        AppContactsAccessManager * accessMgr = [AppContactsAccessManager new];
-//        [accessMgr requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
-//            if( available )
-//            {
-//                ALog(@"addressBook access available, extracting data from abAddressBook API");
-//                FREObject retStr = NULL;
-//                
-//                DLog(@"Retrieving ABRecordRef for contact at position %i",argrecordId);
-//                ABRecordID abrecordId = argrecordId;
-//                ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBookRef, abrecordId);
-//                
-//                // Record ID
-//                DLog(@"Inserting recordId into AS3 Contact Object");
-//                int personId = (int)ABRecordGetRecordID(person);
-//                FREObject recordId;
-//                FRENewObjectFromInt32(personId, &recordId);
-//                FRESetObjectProperty(contact, (const uint8_t*)"recordId", recordId, NULL);
-//                
-//                // Composite name
-//                DLog(@"Inserting composite name into AS3 Contact Object");
-//                CFStringRef personCompositeName = ABRecordCopyCompositeName(person);
-//                if(personCompositeName)
-//                {
-//                    NSString *personCompositeString = [NSString stringWithString:(__bridge NSString *)personCompositeName];
-//                    FRENewObjectFromUTF8( strlen([personCompositeString UTF8String])+1,
-//                                         (const uint8_t*)[personCompositeString UTF8String],
-//                                         &retStr);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
-//                    CFRelease(personCompositeName);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"compositename", retStr, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // First name
-//                DLog(@"Inserting first name into AS3 Contact Object");
-//                CFStringRef personName = ABRecordCopyValue(person, kABPersonFirstNameProperty);
-//                if(personName)
-//                {
-//                    NSString *personNameString = [NSString stringWithString:(__bridge NSString *)personName];
-//                    DLog(@"Adding first name: %@",personNameString);
-//                    FRENewObjectFromUTF8(strlen([personNameString UTF8String])+1,
-//                                         (const uint8_t*)[personNameString UTF8String],
-//                                         &retStr);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"name", retStr, NULL);
-//                    CFRelease(personName);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"name", retStr, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // Last name or Surname
-//                DLog(@"Inserting last name into AS3 Contact Object");
-//                CFStringRef personSurName = ABRecordCopyValue(person, kABPersonLastNameProperty);
-//                if(personSurName)
-//                {
-//                    NSString *personSurNameString = [NSString stringWithString:(__bridge NSString *)personSurName];
-//                    FRENewObjectFromUTF8(strlen([personSurNameString UTF8String])+1,
-//                                         (const uint8_t*)[personSurNameString UTF8String],
-//                                         &retStr);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"lastname", retStr, NULL);
-//                    //[personSurNameString release];
-//                    CFRelease(personSurName);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"lastname", retStr, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // Birthdate
-//                DLog(@"Inserting birthdate into AS3 Contact Object");
-//                NSDate *personBirthdate = CFBridgingRelease(ABRecordCopyValue(person, kABPersonBirthdayProperty));
-//                if(personBirthdate)
-//                {
-//                    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-//                    [dateFormatter setDateStyle:NSDateFormatterShortStyle];
-//                    NSString *personBirthdateString = [dateFormatter stringFromDate:personBirthdate];
-//                    FRENewObjectFromUTF8(strlen([personBirthdateString UTF8String])+1,
-//                                         (const uint8_t*)[personBirthdateString UTF8String],
-//                                         &retStr);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"birthdate", retStr, NULL);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"birthdate", retStr, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // Emails
-//                DLog(@"Inserting emails into AS3 Contact Object");
-//                FREObject emailsArray = NULL;
-//                FRENewObject( (const uint8_t*) "Array", 0, NULL, &emailsArray, nil);
-//                ABMultiValueRef emails = ABRecordCopyValue(person, kABPersonEmailProperty);
-//                if(emails)
-//                {
-//                    for (CFIndex k=0; k < ABMultiValueGetCount(emails); k++)
-//                    {
-//                        NSString* email = CFBridgingRelease(ABMultiValueCopyValueAtIndex(emails, k));
-//                        FRENewObjectFromUTF8(strlen([email UTF8String])+1, (const uint8_t*)[email UTF8String], &retStr);
-//                        FRESetArrayElementAt(emailsArray, k, retStr);
-//                    }
-//                    CFRelease(emails);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"emails", emailsArray, NULL);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"emails", NULL, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // Phone Numbers
-//                DLog(@"Inserting phone numbers into AS3 Contact Object");
-//                FREObject phonesArray = NULL;
-//                FRENewObject((const uint8_t*)"Array", 0, NULL, &phonesArray, nil);
-//                ABMultiValueRef phones = ABRecordCopyValue(person, kABPersonPhoneProperty);
-//                if(phones)
-//                {
-//                    for (CFIndex k=0; k < ABMultiValueGetCount(phones); k++)
-//                    {
-//                        NSString* phone = CFBridgingRelease(ABMultiValueCopyValueAtIndex(phones, k));
-//                        FRENewObjectFromUTF8(strlen([phone UTF8String])+1, (const uint8_t*)[phone UTF8String], &retStr);
-//                        FRESetArrayElementAt(phonesArray, k, retStr);
-//                    }
-//                    CFRelease(phones);
-//                    FRESetObjectProperty(contact, (const uint8_t*)"phones", phonesArray, NULL);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"phones", NULL, NULL);
-//                }
-//                
-//                retStr=NULL;
-//                
-//                // Facebook Information: username
-//                DLog(@"Inserting Facebook information into AS3 Contact Object");
-//                ABMultiValueRef socialMulti = ABRecordCopyValue(person, kABPersonSocialProfileProperty);
-//                if(socialMulti)
-//                {
-//                    for (CFIndex i = 0; i < ABMultiValueGetCount(socialMulti); i++)
-//                    {
-//                        NSDictionary *socialData = CFBridgingRelease(ABMultiValueCopyValueAtIndex(socialMulti, i));
-//                        if ([socialData[@"service"] isEqualToString:(__bridge NSString*)kABPersonSocialProfileServiceFacebook])
-//                        {
-//                            NSString *facebookInfoString = (NSString*) socialData[@"username"];
-//                            FRENewObjectFromUTF8( strlen([facebookInfoString UTF8String])+1,
-//                                                 (const uint8_t*)[facebookInfoString UTF8String],
-//                                                 &retStr);
-//                            FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", retStr, NULL);
-//                        }
-//                    }
-//                    CFRelease(socialMulti);
-//                } else {
-//                    FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", retStr, NULL);
-//                }
-//                
-//                // Address Book Contact Addressses will be added later... (see git history)
-//                
-//                ALog(@"Extracted all information from abAddressBook API.  Returning to AS3 side of NativeExtension");
-//                
-//                
-//                // Dispatch event
-//                detailedContact = contact;
-//                FREDispatchStatusEventAsync(ctx, (const uint8_t*)"detailedContactReady", (const uint8_t *)"OK");
-//            }
-//        }];
-//    }
-//    
-//    DLog(@"Exiting getContactDetails");
-//    return NULL;
-//}
-//
-//
-//
-//
-//FREObject retrieveSimpleContacts(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
-//{
-//    ALog(@"Entering retrieveSimpleContacts");
-//    
-//    if (simpleContacts != NULL) {
-//        ALog(@"Exiting retrieveSimpleContacts");
-//        return simpleContacts;
-//    } else {
-//        ALog(@"Exiting retrieveSimpleContacts (simpleContacts NULL)");
-//        return NULL;
-//    }
-//}
-//
-//FREObject retrieveDetailedContact(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
-//{
-//    ALog(@"Entering retrieveDetailedContact");
-//    
-//    if (detailedContact != NULL) {
-//        ALog(@"Exiting retrieveDetailedContact");
-//        return detailedContact;
-//    } else {
-//        ALog(@"Exiting retrieveDetailedContact (detailedContact NULL)");
-//        return NULL;
-//    }
-//}
-
 
 // ANE SETUP
 
