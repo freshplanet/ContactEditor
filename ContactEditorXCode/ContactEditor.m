@@ -229,7 +229,7 @@ static ContactEditor *sharedInstance = nil;
 
 DEFINE_ANE_FUNCTION(getContactsSimple)
 {
-    ALog(@"Entering getContactsSimple");
+    DLog(@"Entering getContactsSimple");
     
     int batchStartInt;
     FREGetObjectAsInt32(argv[0], &batchStartInt);
@@ -241,13 +241,13 @@ DEFINE_ANE_FUNCTION(getContactsSimple)
     
     [[ContactEditor sharedInstance] getSimpleContactsWithBatchStart:batchStart batchLength:batchLength];
     
-    ALog(@"Exiting getContactsSimple");
+    DLog(@"Exiting getContactsSimple");
     return NULL;
 }
 
 DEFINE_ANE_FUNCTION(getContactDetails)
 {
-    ALog(@"Entering getContactDetails");
+    DLog(@"Entering getContactDetails");
     
     int recordId ;
     uint32_t argRecordId;
@@ -261,17 +261,17 @@ DEFINE_ANE_FUNCTION(getContactDetails)
         FREDispatchStatusEventAsync(AirCECtx, (const uint8_t*)"INVALID_RECORD_ID", (const uint8_t*)"not a valid param");
     }
     
-    ALog(@"Exiting getContactDetails");
+    DLog(@"Exiting getContactDetails");
     return NULL;
 }
 
 DEFINE_ANE_FUNCTION(getContactCount)
 {
-    ALog(@"Entering getContactCount");
+    DLog(@"Entering getContactCount");
     
     [[ContactEditor sharedInstance] getNumContacts];
     
-    ALog(@"Exiting getContactCount");
+    DLog(@"Exiting getContactCount");
     return NULL;
 }
 
@@ -279,7 +279,7 @@ DEFINE_ANE_FUNCTION(getContactCount)
 
 DEFINE_ANE_FUNCTION(retrieveSimpleContacts)
 {
-    ALog(@"Entering retrieveSimpleContacts");
+    DLog(@"Entering retrieveSimpleContacts");
     
     // Retrieve the contacts
     NSMutableArray * simpleContacts = [[ContactEditor sharedInstance] simpleContacts];
@@ -323,13 +323,13 @@ DEFINE_ANE_FUNCTION(retrieveSimpleContacts)
         FRESetArrayElementAt(simpleContactsArr, i, contact);
     }
     
-    ALog(@"Exiting retrieveSimpleContacts");
+    DLog(@"Exiting retrieveSimpleContacts");
     return simpleContactsArr;
 }
 
 DEFINE_ANE_FUNCTION(retrieveContactDetails)
 {
-    ALog(@"Entering retrieveContactDetails");
+    DLog(@"Entering retrieveContactDetails");
     
     NSMutableDictionary *contactDict = [[[ContactEditor sharedInstance] detailedContacts] objectAtIndex:0];
     [[[ContactEditor sharedInstance] detailedContacts] removeObjectAtIndex:0];
@@ -347,7 +347,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     // Composite Name
     NSString * compositeName = [contactDict valueForKey:@"compositename"];
     if ( (NSNull*)compositeName != [NSNull null] ) {
-        ALog(@"compositename = %@",compositeName);
+        DLog(@"compositename = %@",compositeName);
         FRENewObjectFromUTF8(strlen([compositeName UTF8String])+1,
                              (const uint8_t*)[compositeName UTF8String],
                              &stringValue);
@@ -360,7 +360,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     stringValue = NULL;
     NSString * firstName = [contactDict valueForKey:@"firstName"];
     if ( (NSNull*)firstName != [NSNull null] ) {
-        ALog(@"firstName = %@",firstName);
+        DLog(@"firstName = %@",firstName);
         FRENewObjectFromUTF8(strlen([firstName UTF8String])+1,
                              (const uint8_t*)[firstName UTF8String],
                              &stringValue);
@@ -373,7 +373,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     stringValue = NULL;
     NSString * lastName = [contactDict valueForKey:@"lastName"];
     if ( (NSNull*)lastName != [NSNull null] ) {
-        ALog(@"lastName = %@",firstName);
+        DLog(@"lastName = %@",firstName);
         FRENewObjectFromUTF8(strlen([lastName UTF8String])+1,
                              (const uint8_t*)[lastName UTF8String],
                              &stringValue);
@@ -392,7 +392,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         for (int i=0; i < [emails count]; i++)
         {
             NSString *email = [emails objectAtIndex:i];
-            ALog(@"email[%d] = %@",i,email);
+            DLog(@"email[%d] = %@",i,email);
             if (email) {
                 FRENewObjectFromUTF8(strlen([email UTF8String]+1),
                                      (const uint8_t*) [email UTF8String],
@@ -415,7 +415,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         for (int i=0; i < [phones count]; i++)
         {
             NSString *phone = [phones objectAtIndex:i];
-            ALog(@"phone[%d] = %@",i,phone);
+            DLog(@"phone[%d] = %@",i,phone);
             if (phone) {
                 FRENewObjectFromUTF8(strlen([phone UTF8String]+1),
                                      (const uint8_t*) [phone UTF8String],
@@ -432,7 +432,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     stringValue = NULL;
     NSString * facebookName = [contactDict valueForKey:@"lastName"];
     if ( (NSNull*)facebookName != [NSNull null] ) {
-        ALog(@"facebookName = %@",facebookName);
+        DLog(@"facebookName = %@",facebookName);
         FRENewObjectFromUTF8(strlen([facebookName UTF8String])+1,
                              (const uint8_t*)[facebookName UTF8String],
                              &stringValue);
@@ -441,7 +441,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", NULL, NULL);
     }
     
-    ALog(@"Exiting retrieveContactDetails");
+    DLog(@"Exiting retrieveContactDetails");
     return contact;
 }
 
