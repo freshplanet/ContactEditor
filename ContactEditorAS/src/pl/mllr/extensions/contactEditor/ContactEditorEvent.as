@@ -4,26 +4,25 @@ package pl.mllr.extensions.contactEditor
 	
 	public class ContactEditorEvent extends Event
 	{
-		public static const CONTACT_SELECTED:String = "contactSelected";
-		public static const CONTACT_ADDED:String = "contactAdded";
-		public static const CONTACT_NOT_FOUND:String = "contactNotFound";
-
-		public static const SIMPLE_CONTACTS_READY:String = "simpleContactsReady";
-		public static const DETAILED_CONTACT_READY:String = "detailedContactReady";
-
-		private var _recordId:int =-1;
-		public function ContactEditorEvent(type:String,_id:String, bubbles:Boolean=false, cancelable:Boolean=false)
+		public static const ADDRESS_BOOK_ACCESS_DENIED : String = "ADDRESS_BOOK_ACCESS_DENIED";
+		public static const NUM_CONTACT_UPDATED : String = "NUM_CONTACT_UPDATED";
+		public static const SIMPLE_CONTACTS_UPDATED : String = "SIMPLE_CONTACTS_UPDATED";
+		public static const DETAILED_CONTACT_UPDATED:String = "DETAILED_CONTACT_UPDATED";
+		
+		private var _data:Object = null;
+		
+		public function ContactEditorEvent(type:String, data:Object = null, bubbles:Boolean=false, cancelable:Boolean=false)
 		{
-			_recordId = int(_id);
+			_data = data;
 			super(type, bubbles, cancelable);
 		}
 		
 		/**
 		 * the identyfication number of contact
 		 */
-		public function get recordId():int
+		public function get data():Object
 		{
-			return _recordId;
+			return _data;
 		}
 
 	}

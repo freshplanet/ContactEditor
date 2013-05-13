@@ -54,14 +54,9 @@ package pl.mllr.extensions.contactEditor
 		 * <li>ADDRESS_BOOK_ACCESS_DENIED : Developers should display a message 
 		 * asking users to grant access to the AddressBook for the application (iOS Only)</li>
 		 * </ul>
-		 *  
-		 * @param callback function to be called when the native extension is done:  
-		 * the function should have the following signature: 
-		 * function( count:int, errorCode:String ):void
 		 */
-		public function getContactCount( callback:Function ):void
+		public function getContactCount():void
 		{
-			_callback = callback;
 			_context.call("getContactCount");
 		} 
 		
@@ -78,15 +73,11 @@ package pl.mllr.extensions.contactEditor
 		 * asking users to grant access to the AddressBook for the application (iOS Only)</li>
 		 * </ul>
 		 *  
-		 * @param callback callback function to be called when the native extension is done:  
-		 * the function should have the following signature: 
-		 * function( count:int, errorCode:String ):void
 		 * @param batchStart where should each batch start (zero-indexed).
 		 * @param batchLength how many elements should be retrieved this batch.
 		 */
-		public function getContactsSimple( callback:Function, batchStart:int, batchLength:int ):void
-		{  
-			_callback = callback;
+		public function getContactsSimple( batchStart:int, batchLength:int ):void
+		{
 			_context.call("getContactsSimple", batchStart, batchLength);
 		}
 		
@@ -99,17 +90,11 @@ package pl.mllr.extensions.contactEditor
 		 * asking users to grant access to the AddressBook for the application (iOS Only)</li>
 		 * </ul>
 		 * 
-		 * 
-		 * @param callback callback function to be called when the native extension is done:  
-		 * the function should have the following signature: 
-		 * function( contactObject:Object, errorCode:String ):void
 		 * @param contactRecordId the identifier of a contact in the address book.  
 		 * getContactsSimple() should have this data for each contact. 
 		 */
-		public function getDetailsForContact( callback:Function, contactRecordId:int ):void
+		public function getDetailsForContact( contactRecordId:int ):void
 		{
-			trace("[ContactEditor] getDetailsForContact: record id = ", contactRecordId);
-			_callbacks[contactRecordId] = callback;
 			_context.call("getContactDetails",contactRecordId);
 		}
 		
@@ -123,41 +108,34 @@ package pl.mllr.extensions.contactEditor
 		
 		private var _context : ExtensionContext;
 		
-		private var _callback:Function;
-		
-		private var _callbacks:Dictionary = new Dictionary();
-		
 		private function onStatus( event:StatusEvent ) : void
 		{
-			var callback:Function = _callback;
+			var callback:Function;
+			var evt:ContactEditorEvent;
 			
-			if (event.code == "ADDRESS_BOOK_ACCESS_DENIED")
+			if (event.code == ContactEditorEvent.ADDRESS_BOOK_ACCESS_DENIED)
 			{
-				_callback = null;
-				callback(null, event.code);
+				evt = new ContactEditorEvent(ContactEditorEvent.ADDRESS_BOOK_ACCESS_DENIED);
+				this.dispatchEvent(evt);
 			}
-			else if (event.code == "NUM_CONTACT_UPDATED")
+			else if (event.code == ContactEditorEvent.NUM_CONTACT_UPDATED)
 			{
-				_callback = null;
-				var numContacts: int = int(event.level);
-				callback(numContacts, null);
+				evt = new ContactEditorEvent(ContactEditorEvent.NUM_CONTACT_UPDATED,int(event.level));
+				this.dispatchEvent(evt)
 			}
-			else if (event.code == "SIMPLE_CONTACTS_UPDATED")
+			else if (event.code == ContactEditorEvent.SIMPLE_CONTACTS_UPDATED)
 			{
-				_callback = null;
-				var simpleContacts:Array = _context.call("retrieveSimpleContacts") as Array;
-				callback(simpleContacts, null);
+				var start:int = int( event.level.split("-")[0]);
+				var batchLength:int = int( event.level.split("-")[1]);
+				var simpleContacts:Array = _context.call("retrieveSimpleContacts", start, batchLength) as Array;
+				evt = new ContactEditorEvent(ContactEditorEvent.SIMPLE_CONTACTS_UPDATED,simpleContacts);
+				this.dispatchEvent(evt)
 			}
-			else if (event.code == "DETAILED_CONTACT_UPDATED")
+			else if (event.code == ContactEditorEvent.DETAILED_CONTACT_UPDATED)
 			{
-				if (_callback !== null) _callback = null;
-				
-				var recordId:int = int(event.level);
-				callback = _callbacks[recordId]
-				delete _callbacks[int(event.level)];
-				
-				var detailedContact:Object = _context.call("retrieveDetailedContact") as Object;
-				callback(detailedContact,null);
+				var contact:Object = _context.call("retrieveDetailedContact") as Object;
+				evt = new ContactEditorEvent(ContactEditorEvent.DETAILED_CONTACT_UPDATED,contact);
+				this.dispatchEvent(evt)
 			}
 			else
 			{

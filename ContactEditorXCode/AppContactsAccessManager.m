@@ -16,10 +16,10 @@
 
 - (void) requestAddressBookWithCompletionHandler:(AddressBookRequestHandler)handler
 {
-    ALog(@"Entering requestAddressBookWithCompletionHandler");
+    DLog(@"Entering requestAddressBookWithCompletionHandler");
     
     if (handler == NULL) {
-        ALog(@"Error: AddressBookRequestHandler:handler cannot be null.  Returning.");
+        DLog(@"Error: AddressBookRequestHandler:handler cannot be null.  Returning.");
         return;
     }
     
@@ -55,7 +55,7 @@
         CFRelease(addressBookRef);
     }
     
-    ALog(@"Exiting requestAddressBookWithCompletionHandler");
+    DLog(@"Exiting requestAddressBookWithCompletionHandler");
 }
 
 - (AddressBookAuthStatus) addressBookAuthLevel
