@@ -343,6 +343,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     NSNumber *recordId = [contactDict valueForKey:@"recordId"];
     FRENewObjectFromInt32(recordId.integerValue, &personId);
     FRESetObjectProperty(contact, (const uint8_t*) "recordId", personId, NULL);
+    DLog(@"record id = %@",recordId);
     
     // Composite Name
     NSString * compositeName = [contactDict valueForKey:@"compositename"];
@@ -351,7 +352,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         FRENewObjectFromUTF8(strlen([compositeName UTF8String])+1,
                              (const uint8_t*)[compositeName UTF8String],
                              &stringValue);
-        FRESetObjectProperty(contact, (const uint8_t*)"compositename", &stringValue, NULL);
+        FRESetObjectProperty(contact, (const uint8_t*)"compositename", stringValue, NULL);
     } else {
         FRESetObjectProperty(contact, (const uint8_t*)"compositename", NULL, NULL);
     }
@@ -364,7 +365,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         FRENewObjectFromUTF8(strlen([firstName UTF8String])+1,
                              (const uint8_t*)[firstName UTF8String],
                              &stringValue);
-        FRESetObjectProperty(contact, (const uint8_t*)"name", &stringValue, NULL);
+        FRESetObjectProperty(contact, (const uint8_t*)"name", stringValue, NULL);
     } else {
         FRESetObjectProperty(contact, (const uint8_t*)"name", NULL, NULL);
     }
@@ -373,11 +374,11 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
     stringValue = NULL;
     NSString * lastName = [contactDict valueForKey:@"lastName"];
     if ( (NSNull*)lastName != [NSNull null] ) {
-        DLog(@"lastName = %@",firstName);
+        DLog(@"lastName = %@",lastName);
         FRENewObjectFromUTF8(strlen([lastName UTF8String])+1,
                              (const uint8_t*)[lastName UTF8String],
                              &stringValue);
-        FRESetObjectProperty(contact, (const uint8_t*)"lastname", &stringValue, NULL);
+        FRESetObjectProperty(contact, (const uint8_t*)"lastname", stringValue, NULL);
     } else {
         FRESetObjectProperty(contact, (const uint8_t*)"lastname", NULL, NULL);
     }
@@ -436,7 +437,7 @@ DEFINE_ANE_FUNCTION(retrieveContactDetails)
         FRENewObjectFromUTF8(strlen([facebookName UTF8String])+1,
                              (const uint8_t*)[facebookName UTF8String],
                              &stringValue);
-        FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", &stringValue, NULL);
+        FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", stringValue, NULL);
     } else {
         FRESetObjectProperty(contact, (const uint8_t*)"facebookInfo", NULL, NULL);
     }
