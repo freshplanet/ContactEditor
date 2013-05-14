@@ -19,8 +19,8 @@ public class pickContact implements FREFunction {
 		try{
 			PickContactHandler.contactContext = context;
 			
-			if(ContactEditorContext.pickContactHandler!=null)
-				ContactEditorContext.pickContactHandler.finish();
+//			if(ContactEditorContext.pickContactHandler!=null)
+//				ContactEditorContext.pickContactHandler.finish();
 			
 			String mimeType=ContactsContract.Contacts.CONTENT_ITEM_TYPE;
 			if(arg1!=null && arg1[0]!=null)
@@ -28,7 +28,7 @@ public class pickContact implements FREFunction {
 			
 			
 			if(mimeType.equals("finish")){
-				ContactEditorContext.pickContactHandler.dispose();
+//				ContactEditorContext.pickContactHandler.dispose();
 				return null;
 			}
 			

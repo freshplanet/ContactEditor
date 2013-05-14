@@ -21,7 +21,7 @@ public class PickContactHandler extends Activity {
     public void onCreate(Bundle savedInstanceState) {
 
 	    	super.onCreate(savedInstanceState);
-	    	ContactEditorContext.pickContactHandler = this;
+//	    	ContactEditorContext.pickContactHandler = this;
 	    	
 	        startActivityForResult(ContactEditorContext.intent, REQUEST_CODE);
 
@@ -34,7 +34,7 @@ public class PickContactHandler extends Activity {
 
     @Override
     public void finish(){
-    	ContactEditorContext.pickContactHandler = null;
+//    	ContactEditorContext.pickContactHandler = null;
     	super.finish();
     }
     @Override

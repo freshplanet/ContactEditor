@@ -35,7 +35,6 @@ public class Details  {
 	public final static String TYPE_LASTNAME ="lastname";
 	
 	
-
 	public static FREArray getPhoneNumbers( ContentResolver resolver ,String id) throws IllegalStateException, FREASErrorException, FREWrongThreadException, IllegalArgumentException, FREInvalidObjectException, FREReadOnlyException, FRETypeMismatchException {
 	 		FREArray phones = FREArray.newArray(0);
 	 		int count = 0;
