@@ -12,11 +12,11 @@ import com.adobe.fre.FREWrongThreadException;
 
 public class RetrieveSimpleContacts implements FREFunction {
 
-	private static final String TAG = "[ContactEditor] - RetrieveSimpleContacts";
+	private static final String TAG = "ContactEditor";
 	
 	@Override
 	public FREObject call(FREContext context, FREObject[] args) {
-		Log.d(TAG, "Entering call");
+		Log.d(TAG, "Entering RetrieveSimpleContacts.call()");
 		
 		FREObject simpleContacts = null;
 		
@@ -35,7 +35,7 @@ public class RetrieveSimpleContacts implements FREFunction {
 			e.printStackTrace();
 		}
 		
-		Log.d(TAG, "Exiting call");
+		Log.d(TAG, "Exiting RetrieveSimpleContacts.call()");
 		return simpleContacts;
 	}
 
