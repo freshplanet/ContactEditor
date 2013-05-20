@@ -30,7 +30,7 @@ import com.adobe.fre.FREWrongThreadException;
 
 public class ContactEditorContext extends FREContext{
 	
-	private static final String TAG = "[ContactEditor] - ContactEditorContext";
+	private static final String TAG = "ContactEditor";
 	
 	public static Intent intent;
 	
@@ -69,7 +69,6 @@ public class ContactEditorContext extends FREContext{
 		try{
 			Cursor contactCursor =  this.getActivity().managedQuery(Phone.CONTENT_URI, new String[] { Phone.CONTACT_ID, Phone.DISPLAY_NAME },null, null, null);
 			int count = contactCursor.getCount();
-			Log.d(TAG, "getContactCount() - count = " + Integer.toString(count));
 			dispatchStatusEventAsync("NUM_CONTACT_UPDATED", Integer.toString(count));
 			contactCursor.close();
 		} catch (Exception e) {
@@ -94,12 +93,12 @@ public class ContactEditorContext extends FREContext{
 				HashMap<String, Object> contactDict = new HashMap<String, Object>();
 				
 				// Record ID
-				contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, Integer.valueOf(contactCursor.getInt(0)));
+				Integer recordId = Integer.valueOf( contactCursor.getInt(0) );
+				contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, recordId);
 				
 				// Composite name
 				String compositeName = contactCursor.getString(1);
 				if (compositeName != null) {
-					Log.d(TAG, "Retrieving contact["+index+"] = "+compositeName);
 					contactDict.put(AddressBookAccessor.TYPE_COMPOSITENAME, compositeName);
 				}
 				
@@ -118,37 +117,43 @@ public class ContactEditorContext extends FREContext{
 	}
 
 	public void getDetailedContact(int recordId) {
+		Log.d(TAG, "Entering ContactEditorContext.getDetailedContact() - recordId = " + Integer.toString(recordId));
 		
 		ContentResolver resolver = this.getActivity().getContentResolver();
 		
 		HashMap<String, Object> contactDict = new HashMap<String, Object>();
 		
-		contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, 
-				Integer.valueOf(recordId));
-		contactDict.put(AddressBookAccessor.TYPE_COMPOSITENAME, 
-				AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.Phone.DISPLAY_NAME));
-		contactDict.put(AddressBookAccessor.TYPE_NAME, 
-				AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.StructuredName.GIVEN_NAME));
-		contactDict.put(AddressBookAccessor.TYPE_LASTNAME, 
-				AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.StructuredName.FAMILY_NAME));
-		contactDict.put(AddressBookAccessor.TYPE_EMAILS, 
-				AddressBookAccessor.getEmails(resolver, recordId));
-		contactDict.put(AddressBookAccessor.TYPE_PHONES, 
-				AddressBookAccessor.getPhoneNumbers(resolver, recordId));
+		// Retrieve fields from device
+		String compositeName = AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.Phone.DISPLAY_NAME);
+//		String firstName = AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.StructuredName.GIVEN_NAME);
+//		String lastName =  AddressBookAccessor.getContactField(resolver, recordId, CommonDataKinds.StructuredName.FAMILY_NAME);
+		String[] emails = AddressBookAccessor.getEmails(resolver, Integer.toString(recordId) );
+		String[] phones = AddressBookAccessor.getPhoneNumbers(resolver, Integer.toString(recordId) );
+		
+		contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, Integer.valueOf(recordId));
+		contactDict.put(AddressBookAccessor.TYPE_COMPOSITENAME, compositeName);
+//		contactDict.put(AddressBookAccessor.TYPE_NAME, firstName);
+//		contactDict.put(AddressBookAccessor.TYPE_LASTNAME, lastName);
+		contactDict.put(AddressBookAccessor.TYPE_EMAILS, emails);
+		contactDict.put(AddressBookAccessor.TYPE_PHONES, phones);
 		
 		detailedContacts.add(contactDict);
 		
 		dispatchStatusEventAsync("DETAILED_CONTACT_UPDATED", Integer.toString(recordId));
+		
+		Log.d(TAG, "Exiting ContactEditorContext.getDetailedContact()");
 	}
 
 	public FREObject retrieveContactsSimple(int batchStart, int batchLength) {
+		Log.d(TAG, "Entering ContactEditorContext.retrieveContactSimple()");
 		try {
-			FREObject contact = FREObject.newObject("Object",null);
 			FREArray contacts = FREArray.newArray(batchLength);
 			
 			int indexCurrent = 0;
 			for (int i = batchStart; indexCurrent < batchLength; i++) {
 				HashMap<String, Object> contactDict = simpleContacts.get(i);
+				
+				FREObject contact = FREObject.newObject("Object",null);
 				
 				Integer recordId = (Integer) contactDict.get(AddressBookAccessor.TYPE_RECORD_ID);
 				if (recordId != null) {
@@ -157,15 +162,14 @@ public class ContactEditorContext extends FREContext{
 				
 				String compositeName = (String) contactDict.get(AddressBookAccessor.TYPE_COMPOSITENAME);
 				if (compositeName != null) {
-					contact.setProperty(AddressBookAccessor.TYPE_RECORD_ID, FREObject.newObject(compositeName));
+					contact.setProperty(AddressBookAccessor.TYPE_COMPOSITENAME, FREObject.newObject(compositeName));
 				}
 				
 				contacts.setObjectAt(indexCurrent, contact);
 				indexCurrent++;
 			}
 			
-			Log.d(TAG, "retrieveContactsSimple() - number of contacts returning = " + contacts.getProperty("length").getAsInt());
-			
+			Log.d(TAG, "Exiting ContactEditorContext.retrieveContactSimple()");
 			return contacts;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -174,9 +178,9 @@ public class ContactEditorContext extends FREContext{
 	}
 
 	public FREObject retrieveDetailedContact() {
+		Log.d(TAG, "Entering ContactEditorContext.retrieveDetailedContact()");
 		try {
-			
-			FREObject contact = FREObject.newObject("Object");
+			FREObject contact = FREObject.newObject("Object",null);
 			
 			HashMap<String, Object> contactDict = detailedContacts.remove(0);
 			
@@ -187,7 +191,7 @@ public class ContactEditorContext extends FREContext{
 			
 			String compositeName = (String) contactDict.get(AddressBookAccessor.TYPE_COMPOSITENAME);
 			if (compositeName != null) {
-				contact.setProperty(AddressBookAccessor.TYPE_RECORD_ID, FREObject.newObject(compositeName));
+				contact.setProperty(AddressBookAccessor.TYPE_COMPOSITENAME, FREObject.newObject(compositeName));
 			}
 			
 			String name = (String) contactDict.get(AddressBookAccessor.TYPE_NAME);
@@ -209,7 +213,8 @@ public class ContactEditorContext extends FREContext{
 			if (phones != null) {
 				contact.setProperty(AddressBookAccessor.TYPE_PHONES, toFREArray(phones));
 			}
-
+			
+			Log.d(TAG, "Exiting ContactEditorContext.retrieveDetailedContact()");
 			return contact;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -219,12 +224,14 @@ public class ContactEditorContext extends FREContext{
 	
 	private FREObject toFREArray( String[] array ) throws IllegalStateException, FREASErrorException, FREWrongThreadException, FREInvalidObjectException, FRETypeMismatchException
 	{
+		Log.d(TAG, "Entering ContactEditorContext.toFREArray()");
 		FREArray arr = FREArray.newArray(array.length);
 		
 		for (int i = 0; i < array.length; i++) {
 			arr.setObjectAt(i, FREObject.newObject(array[i]));
 		}
 		
+		Log.d(TAG, "Exiting ContactEditorContext.toFREArray()");
 		return arr;
 	}
     
