@@ -1,11 +1,9 @@
 package pl.mllr.extensions.contactEditor
 {
-	import flash.desktop.DockIcon;
 	import flash.events.EventDispatcher;
 	import flash.events.StatusEvent;
 	import flash.external.ExtensionContext;
 	import flash.system.Capabilities;
-	import flash.utils.Dictionary;
 
 	public class ContactEditor extends EventDispatcher
 	{
@@ -55,8 +53,9 @@ package pl.mllr.extensions.contactEditor
 		 * asking users to grant access to the AddressBook for the application (iOS Only)</li>
 		 * </ul>
 		 */
-		public function getContactCount():void
+		public function getContactCount( callback:Function ):void
 		{
+			_contactCountCallback = callback;
 			_context.call("getContactCount");
 		} 
 		
@@ -76,8 +75,9 @@ package pl.mllr.extensions.contactEditor
 		 * @param batchStart where should each batch start (zero-indexed).
 		 * @param batchLength how many elements should be retrieved this batch.
 		 */
-		public function getContactsSimple( batchStart:int, batchLength:int ):void
+		public function getContactsSimple( callback:Function, batchStart:int, batchLength:int ):void
 		{
+			_simpleContactsCallback = callback;
 			_context.call("getContactsSimple", batchStart, batchLength);
 		}
 		
@@ -93,9 +93,22 @@ package pl.mllr.extensions.contactEditor
 		 * @param contactRecordId the identifier of a contact in the address book.  
 		 * getContactsSimple() should have this data for each contact. 
 		 */
-		public function getDetailsForContact( contactRecordId:int ):void
+		public function getDetailsForContact( callback:Function, contactRecordId:int ):void
 		{
+			_detailedContactCallback = callback;
 			_context.call("getContactDetails",contactRecordId);
+		}
+		
+		/** Removes the callback. */
+		public function removeSimpleContactCallback():void
+		{
+			_simpleContactsCallback = null;
+		}
+		
+		/** Removes the callback. */
+		public function removeDetailedContactCallback():void
+		{
+			_detailedContactCallback = null;
 		}
 		
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -107,6 +120,10 @@ package pl.mllr.extensions.contactEditor
 		private static var _instance : ContactEditor;
 		
 		private var _context : ExtensionContext;
+		
+		private var _contactCountCallback:Function;
+		private var _simpleContactsCallback:Function;
+		private var _detailedContactCallback:Function;
 		
 		private function onStatus( event:StatusEvent ) : void
 		{
@@ -120,22 +137,33 @@ package pl.mllr.extensions.contactEditor
 			}
 			else if (event.code == ContactEditorEvent.NUM_CONTACT_UPDATED)
 			{
-				evt = new ContactEditorEvent(ContactEditorEvent.NUM_CONTACT_UPDATED,int(event.level));
-				this.dispatchEvent(evt)
+				if ( _contactCountCallback !== null )
+				{
+					callback = _contactCountCallback;
+					_contactCountCallback = null;
+					
+					var numContacts:int = int(event.level);
+					callback(numContacts);
+				}
 			}
 			else if (event.code == ContactEditorEvent.SIMPLE_CONTACTS_UPDATED)
 			{
-				var start:int = int( event.level.split("-")[0]);
-				var batchLength:int = int( event.level.split("-")[1]);
-				var simpleContacts:Array = _context.call("retrieveSimpleContacts", start, batchLength) as Array;
-				evt = new ContactEditorEvent(ContactEditorEvent.SIMPLE_CONTACTS_UPDATED,simpleContacts);
-				this.dispatchEvent(evt)
+				if (_simpleContactsCallback !== null)
+				{
+					var start:int = int( event.level.split("-")[0]);
+					var batchLength:int = int( event.level.split("-")[1]);
+					var simpleContacts:Array = _context.call("retrieveSimpleContacts", start, batchLength) as Array;
+					
+					_simpleContactsCallback(simpleContacts);
+				}
 			}
 			else if (event.code == ContactEditorEvent.DETAILED_CONTACT_UPDATED)
 			{
-				var contact:Object = _context.call("retrieveDetailedContact") as Object;
-				evt = new ContactEditorEvent(ContactEditorEvent.DETAILED_CONTACT_UPDATED,contact);
-				this.dispatchEvent(evt)
+				if ( _detailedContactCallback !== null )
+				{
+					var contact:Object = _context.call("retrieveDetailedContact") as Object;
+					_detailedContactCallback(contact);
+				}
 			}
 			else
 			{
