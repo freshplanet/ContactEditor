@@ -99,6 +99,16 @@ package pl.mllr.extensions.contactEditor
 			_context.call("getContactDetails",contactRecordId);
 		}
 		
+		/**
+		 * callback will be called once with an array of results
+		 */
+		public function getDetailsForContacts( callback:Function, contactRecords:Vector.<int> ):void
+		{
+			trace( "[ContactEditor]", "getting contact details for ids ", contactRecords ) ;
+			_detailedContactCallback = callback;
+			_context.call("getContactsDetails",contactRecords);
+		}
+		
 		/** Removes the callback. */
 		public function removeSimpleContactCallback():void
 		{
@@ -148,6 +158,7 @@ package pl.mllr.extensions.contactEditor
 			}
 			else if (event.code == ContactEditorEvent.SIMPLE_CONTACTS_UPDATED)
 			{
+				trace( "as3 received - simpleContactsUpdated") ;
 				if (_simpleContactsCallback !== null)
 				{
 					var start:int = int( event.level.split("-")[0]);
@@ -162,6 +173,14 @@ package pl.mllr.extensions.contactEditor
 				if ( _detailedContactCallback !== null )
 				{
 					var contact:Object = _context.call("retrieveDetailedContact") as Object;
+					_detailedContactCallback(contact);
+				}
+			}
+			else if (event.code == ContactEditorEvent.DETAILED_CONTACTS_UPDATED)
+			{
+				if ( _detailedContactCallback !== null )
+				{
+					var contact:Object = _context.call("retrieveAllDetails") as Object;
 					_detailedContactCallback(contact);
 				}
 			}

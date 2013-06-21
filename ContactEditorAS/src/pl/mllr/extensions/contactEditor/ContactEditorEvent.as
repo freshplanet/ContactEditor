@@ -8,6 +8,7 @@ package pl.mllr.extensions.contactEditor
 		public static const NUM_CONTACT_UPDATED : String = "NUM_CONTACT_UPDATED";
 		public static const SIMPLE_CONTACTS_UPDATED : String = "SIMPLE_CONTACTS_UPDATED";
 		public static const DETAILED_CONTACT_UPDATED:String = "DETAILED_CONTACT_UPDATED";
+		public static const DETAILED_CONTACTS_UPDATED:String = "DETAILED_CONTACTS_UPDATED";
 		
 		private var _data:Object = null;
 		
