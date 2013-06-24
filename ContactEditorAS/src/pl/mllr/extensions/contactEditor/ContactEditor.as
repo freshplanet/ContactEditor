@@ -104,9 +104,10 @@ package pl.mllr.extensions.contactEditor
 		 */
 		public function getDetailsForContacts( callback:Function, contactRecords:Vector.<int> ):void
 		{
-			trace( "[ContactEditor]", "getting contact details for ids ", contactRecords ) ;
+			trace( "[ContactEditor]", "getting contact details for ids ", contactRecords.slice(0,3), "..." ) ;
 			_detailedContactCallback = callback;
 			_context.call("getContactsDetails",contactRecords);
+			trace( "[ContactEditor]", "waiting async return" ) ;
 		}
 		
 		/** Removes the callback. */

@@ -266,8 +266,10 @@ static ContactEditor *sharedInstance = nil;
 
 #pragma mark - Utils
 
-NSArray* getFREArrayAsNSArray( FREObject array )
+NSArray* getFREArrayOfUInt( FREObject array )
 {
+    
+    [ContactEditor log:@"converting FREArray"];
     
     uint32_t arrayLength;
     
@@ -279,6 +281,7 @@ NSArray* getFREArrayAsNSArray( FREObject array )
     
     for (NSInteger i = arrayLength-1; i >= 0; i--)
     {
+        [ContactEditor log:@"convert element #%d",i];
         FREObject el;
         if (FREGetArrayElementAt(array, i, &el) != FRE_OK)
         {
@@ -295,6 +298,8 @@ NSArray* getFREArrayAsNSArray( FREObject array )
         // Add the element to the array
         [nsArray addObject:[NSNumber numberWithInt:elInt]];
     }
+    
+    [ContactEditor log:@"end converting FREArray"];
     
     return nsArray;
     
@@ -359,7 +364,7 @@ DEFINE_ANE_FUNCTION(getContactsDetails)
     
     [ContactEditor log:@"Entering getContactsDetails"] ;
     
-    NSArray *records = getFREArrayAsNSArray( argv[0] );
+    NSArray *records = getFREArrayOfUInt( argv[0] );
     
     [[ContactEditor sharedInstance] getDetailedContactsWithRecordIds:records];
     //[[ContactEditor sharedInstance] performSelectorInBackground:@selector(getDetailedContactsWithRecordIds:) withObject:records];
