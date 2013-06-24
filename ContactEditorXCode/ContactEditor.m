@@ -78,8 +78,6 @@ static ContactEditor *sharedInstance = nil;
             int numContactsProcessed = 0;
             int indexCurrentContact = batchStart;
             
-            [ContactEditor log:@"will extract contacts from batchStart %i with batchLength %i", batchStart, batchLength];
-            
             CFArrayRef contacts = ABAddressBookCopyArrayOfAllPeople(addressBookRef);
             while( numContactsProcessed < batchLength )
             {
@@ -99,8 +97,6 @@ static ContactEditor *sharedInstance = nil;
                 }
                 
                 [self.simpleContacts addObject:contactDict];
-                
-                [ContactEditor log:@"Contact # %i processed",indexCurrentContact];
                 
                 indexCurrentContact++;
                 numContactsProcessed++;
@@ -126,7 +122,8 @@ static ContactEditor *sharedInstance = nil;
     [accessManager requestAddressBookWithCompletionHandler:^(ABAddressBookRef addressBookRef, BOOL available) {
         if (available)
         {
-            [ContactEditor log:@"Retrieving ABRecordRef for contact at position %i", recordId];
+            
+            DLog(@"Retrieving ABRecordRef for contact at position %i", recordId);
             
             // Change initWithCapacity parameter as you add/remove parameters
             NSMutableDictionary *contactDict = [[NSMutableDictionary alloc] initWithCapacity:7];
@@ -217,8 +214,6 @@ static ContactEditor *sharedInstance = nil;
 - (void) getDetailedContactsWithRecordIds:(NSArray*)records;
 {
     
-    [ContactEditor log:@"in getDetailedContactsWithRecordIds"] ;
-    
     __block uint32_t batchLength = [records count];
     
     for ( NSNumber *record in records) {
@@ -281,7 +276,6 @@ NSArray* getFREArrayOfUInt( FREObject array )
     
     for (NSInteger i = arrayLength-1; i >= 0; i--)
     {
-        [ContactEditor log:@"convert element #%d",i];
         FREObject el;
         if (FREGetArrayElementAt(array, i, &el) != FRE_OK)
         {
@@ -362,12 +356,10 @@ DEFINE_ANE_FUNCTION(getContactsDetails)
 {
     DLog(@"Entering getContactsDetails");
     
-    [ContactEditor log:@"Entering getContactsDetails"] ;
-    
     NSArray *records = getFREArrayOfUInt( argv[0] );
     
-    [[ContactEditor sharedInstance] getDetailedContactsWithRecordIds:records];
-    //[[ContactEditor sharedInstance] performSelectorInBackground:@selector(getDetailedContactsWithRecordIds:) withObject:records];
+    //[[ContactEditor sharedInstance] getDetailedContactsWithRecordIds:records];
+    [[ContactEditor sharedInstance] performSelectorInBackground:@selector(getDetailedContactsWithRecordIds:) withObject:records];
     
     DLog(@"Exiting getContactsDetails");
     return NULL;
