@@ -23,7 +23,8 @@ public class GetContactDetails implements FREFunction {
 		int recordId;
 		try {
 			recordId = args[0].getAsInt();
-			((ContactEditorContext) context).getDetailedContact(recordId);
+			if( ((ContactEditorContext) context).getDetailedContact(recordId) != null )
+				context.dispatchStatusEventAsync("DETAILED_CONTACT_UPDATED", Integer.toString(recordId));
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
 		} catch (FRETypeMismatchException e) {

@@ -7,11 +7,12 @@ import java.util.Map;
 
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.GetContactCount;
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.GetContactDetails;
+import pl.mateuszmackowiak.nativeANE.contactManager.functions.GetContactsDetails;
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.GetContactsSimple;
+import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveAllDetails;
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveDetailedContact;
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveSimpleContacts;
 import pl.mateuszmackowiak.nativeANE.contactManager.util.AddressBookAccessor;
-
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -52,8 +53,10 @@ public class ContactEditorContext extends FREContext{
         map.put("getContactCount", new GetContactCount());
         map.put("getContactsSimple", new GetContactsSimple());
         map.put("getContactDetails", new GetContactDetails());
+        map.put("getContactsDetails", new GetContactsDetails());
         map.put("retrieveSimpleContacts", new RetrieveSimpleContacts());
         map.put("retrieveDetailedContact", new RetrieveDetailedContact());
+        map.put("retrieveAllDetails", new RetrieveAllDetails());
         
         return map;
     }
@@ -116,7 +119,7 @@ public class ContactEditorContext extends FREContext{
  		dispatchStatusEventAsync("SIMPLE_CONTACTS_UPDATED", batchId);
 	}
 
-	public void getDetailedContact(int recordId) {
+	public HashMap<String, Object> getDetailedContact(int recordId) {
 		Log.d(TAG, "Entering ContactEditorContext.getDetailedContact() - recordId = " + Integer.toString(recordId));
 		
 		ContentResolver resolver = this.getActivity().getContentResolver();
@@ -139,9 +142,9 @@ public class ContactEditorContext extends FREContext{
 		
 		detailedContacts.add(contactDict);
 		
-		dispatchStatusEventAsync("DETAILED_CONTACT_UPDATED", Integer.toString(recordId));
-		
 		Log.d(TAG, "Exiting ContactEditorContext.getDetailedContact()");
+		
+		return contactDict;
 	}
 
 	public FREObject retrieveContactsSimple(int batchStart, int batchLength) {
@@ -179,6 +182,7 @@ public class ContactEditorContext extends FREContext{
 
 	public FREObject retrieveDetailedContact() {
 		Log.d(TAG, "Entering ContactEditorContext.retrieveDetailedContact()");
+		if( detailedContacts.size() == 0 ) return null ;
 		try {
 			FREObject contact = FREObject.newObject("Object",null);
 			
