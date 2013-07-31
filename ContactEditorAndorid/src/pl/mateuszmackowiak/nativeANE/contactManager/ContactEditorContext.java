@@ -13,6 +13,7 @@ import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveAllDetails
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveDetailedContact;
 import pl.mateuszmackowiak.nativeANE.contactManager.functions.RetrieveSimpleContacts;
 import pl.mateuszmackowiak.nativeANE.contactManager.util.AddressBookAccessor;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -80,49 +81,68 @@ public class ContactEditorContext extends FREContext{
 	}
 
 	public void getContactsSimple(int batchStart, int batchLength) {
-		int index = 0;
+		
+		final int _batchStart = batchStart ;
+		final int _batchLength = batchLength ;
 		
 		// Retrieve cursor to AddressBook provider and move cursor to desired position
-		Cursor contactCursor =  this.getActivity().getContentResolver().query(
+		final Cursor contactCursor = getActivity().getContentResolver().query(
 				Phone.CONTENT_URI, 
 				new String[] { Phone.CONTACT_ID, Phone.DISPLAY_NAME },null, null
 				,Phone.DISPLAY_NAME + " COLLATE LOCALIZED ASC");
 		contactCursor.moveToPosition(batchStart);
 		
-		// iterate over the cursor, going thru what we want (the batch)
-		while (index < batchLength)
-		{
-			try {
-				HashMap<String, Object> contactDict = new HashMap<String, Object>();
+		new Thread( new Runnable() {
+			
+			@Override
+			public void run() {
+				int index = 0;
 				
-				// Record ID
-				Integer recordId = Integer.valueOf( contactCursor.getInt(0) );
-				contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, recordId);
-				
-				// Composite name
-				String compositeName = contactCursor.getString(1);
-				if (compositeName != null) {
-					contactDict.put(AddressBookAccessor.TYPE_COMPOSITENAME, compositeName);
+				// iterate over the cursor, going thru what we want (the batch)
+				while (index < _batchLength)
+				{
+					try {
+						HashMap<String, Object> contactDict = new HashMap<String, Object>();
+						
+						// Record ID
+						Integer recordId = Integer.valueOf( contactCursor.getInt(0) );
+						contactDict.put(AddressBookAccessor.TYPE_RECORD_ID, recordId);
+						
+						// Composite name
+						String compositeName = contactCursor.getString(1);
+						if (compositeName != null) {
+							contactDict.put(AddressBookAccessor.TYPE_COMPOSITENAME, compositeName);
+						}
+						
+						simpleContacts.add(contactDict);
+						contactCursor.moveToNext();
+						index++;
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
+				contactCursor.close();
 				
-				simpleContacts.add(contactDict);
-				contactCursor.moveToNext();
-				index++;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		contactCursor.close();
-		
-		// dispatch event
-		String batchId = Integer.toString(batchStart) + "-" + Integer.toString(batchLength);
- 		dispatchStatusEventAsync("SIMPLE_CONTACTS_UPDATED", batchId);
-	}
+				Log.d("Contact Editor 2nd Thread", "method core passed, dispatching events") ;
+				
+				// dispatch event
+				String batchId = Integer.toString(_batchStart) + "-" + Integer.toString(_batchLength);
+				dispatchStatusEventAsync("SIMPLE_CONTACTS_UPDATED", batchId);
 
-	public HashMap<String, Object> getDetailedContact(int recordId) {
-		Log.d(TAG, "Entering ContactEditorContext.getDetailedContact() - recordId = " + Integer.toString(recordId));
+				Log.d("Contact Editor 2nd Thread", "event dispatched") ;
+			}
+		} ).start() ;
 		
-		ContentResolver resolver = this.getActivity().getContentResolver();
+	}
+	
+	// non thread safe
+	public HashMap<String, Object> getDetailedContact(int recordId) {
+		HashMap<String, Object>ret = getDetailedContact( recordId, this.getActivity().getContentResolver() ) ; 
+		detailedContacts.add( ret ) ;
+		return ret ;
+	}
+	// thread safe
+	public static HashMap<String, Object> getDetailedContact(int recordId, ContentResolver resolver) {
 		
 		HashMap<String, Object> contactDict = new HashMap<String, Object>();
 		
@@ -140,11 +160,31 @@ public class ContactEditorContext extends FREContext{
 		contactDict.put(AddressBookAccessor.TYPE_EMAILS, emails);
 		contactDict.put(AddressBookAccessor.TYPE_PHONES, phones);
 		
-		detailedContacts.add(contactDict);
-		
-		Log.d(TAG, "Exiting ContactEditorContext.getDetailedContact()");
-		
 		return contactDict;
+	}
+	
+	public void getDetailedContacts(int[] records)
+	{
+		
+		final int[] _records = records ;
+		final Activity context = this.getActivity() ;
+		
+		new Thread(new Runnable(){
+			public void run(){
+			    final List<HashMap<String,Object>> results = new ArrayList<HashMap<String,Object>>();
+				for( int id : _records )
+					results.add( getDetailedContact(id, context.getContentResolver()) ) ;
+				context.runOnUiThread(new Runnable(){
+					public void run(){
+						for( HashMap<String,Object> result:results )
+							detailedContacts.add(result) ;
+						// dispatch event
+						dispatchStatusEventAsync("DETAILED_CONTACTS_UPDATED", "");
+					}
+				}) ;
+			}
+		}).start() ;
+		
 	}
 
 	public FREObject retrieveContactsSimple(int batchStart, int batchLength) {
@@ -182,6 +222,7 @@ public class ContactEditorContext extends FREContext{
 
 	public FREObject retrieveDetailedContact() {
 		Log.d(TAG, "Entering ContactEditorContext.retrieveDetailedContact()");
+		Log.d(TAG, "detailedContacts.size == " + detailedContacts.size());
 		if( detailedContacts.size() == 0 ) return null ;
 		try {
 			FREObject contact = FREObject.newObject("Object",null);

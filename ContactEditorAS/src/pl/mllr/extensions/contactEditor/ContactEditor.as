@@ -159,7 +159,6 @@ package pl.mllr.extensions.contactEditor
 			}
 			else if (event.code == ContactEditorEvent.SIMPLE_CONTACTS_UPDATED)
 			{
-				trace( "as3 received - simpleContactsUpdated") ;
 				if (_simpleContactsCallback !== null)
 				{
 					var start:int = int( event.level.split("-")[0]);
