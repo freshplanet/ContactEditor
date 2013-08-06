@@ -367,11 +367,11 @@ DEFINE_ANE_FUNCTION(getContactsDetails)
 
 DEFINE_ANE_FUNCTION(getContactCount)
 {
-    DLog(@"Entering getContactCount");
+    NSLog(@"Entering getContactCount");
     
     [[ContactEditor sharedInstance] getNumContacts];
     
-    DLog(@"Exiting getContactCount");
+    NSLog(@"Exiting getContactCount");
     return NULL;
 }
 

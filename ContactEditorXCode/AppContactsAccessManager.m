@@ -16,10 +16,10 @@
 
 - (void) requestAddressBookWithCompletionHandler:(AddressBookRequestHandler)handler
 {
-    DLog(@"Entering requestAddressBookWithCompletionHandler");
+    NSLog(@"Entering requestAddressBookWithCompletionHandler");
     
     if (handler == NULL) {
-        DLog(@"Error: AddressBookRequestHandler:handler cannot be null.  Returning.");
+        NSLog(@"Error: AddressBookRequestHandler:handler cannot be null.  Returning.");
         return;
     }
     
@@ -44,18 +44,18 @@
         {
             status = curStatus;
             handler(addressBookRef, [self isStatusAvailable:status]);
-            CFRelease(addressBookRef);
+            if( addressBookRef != NULL ) CFRelease(addressBookRef);
         }
     }
     else
     {
         addressBookRef = ABAddressBookCreate();
-        status = kABAuthStatusAuthorized;
+        status = kABAuthStatusAuthorized; ;
         handler(addressBookRef, [self isStatusAvailable:status]);
         CFRelease(addressBookRef);
     }
     
-    DLog(@"Exiting requestAddressBookWithCompletionHandler");
+    NSLog(@"Exiting requestAddressBookWithCompletionHandler");
 }
 
 - (AddressBookAuthStatus) addressBookAuthLevel

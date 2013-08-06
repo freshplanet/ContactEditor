@@ -138,11 +138,13 @@ package pl.mllr.extensions.contactEditor
 		
 		private function onStatus( event:StatusEvent ) : void
 		{
+
 			var callback:Function;
 			var evt:ContactEditorEvent;
 			
 			if (event.code == ContactEditorEvent.ADDRESS_BOOK_ACCESS_DENIED)
 			{
+				trace("[Contact Editor]", "AddressBook access denied") ;
 				evt = new ContactEditorEvent(ContactEditorEvent.ADDRESS_BOOK_ACCESS_DENIED);
 				this.dispatchEvent(evt);
 			}
@@ -191,8 +193,3 @@ package pl.mllr.extensions.contactEditor
 		}
 	}
 }
-
-
-
-
-
