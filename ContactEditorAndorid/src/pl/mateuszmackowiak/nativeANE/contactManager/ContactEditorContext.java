@@ -219,7 +219,36 @@ public class ContactEditorContext extends FREContext{
 			return null;
 		}
 	}
+	
+	public FREArray retreiveAllContacts() {
+		try{
+			int size = detailedContacts.size() ;
+			FREArray arr = FREArray.newArray(size) ;
+			for( int i = 0 ; i < size ; ++i )
+			{
+				arr.setObjectAt(i, retrieveDetailedContact()) ;
+			}
 
+			return arr ;
+		} catch (FREInvalidObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FRETypeMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FREWrongThreadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalStateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FREASErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null ;
+	}
+	
 	public FREObject retrieveDetailedContact() {
 		Log.d(TAG, "Entering ContactEditorContext.retrieveDetailedContact()");
 		Log.d(TAG, "detailedContacts.size == " + detailedContacts.size());

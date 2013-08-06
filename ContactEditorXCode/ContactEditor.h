@@ -25,7 +25,7 @@ typedef void (^DetailedContactCompletion) (BOOL success);
 
 @end
 
-NSArray* getFREArrayAsNSArray(FREObject array);
+NSArray* getFREArrayOfUInt( FREObject array );
 
 // Main Functions
 DEFINE_ANE_FUNCTION(getContactsSimple);
